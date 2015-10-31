@@ -1,25 +1,30 @@
 #include "RemoteControllerPCH.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(ModuleLog, Log, All)
+#include "RemoteControllerModule.h"
+
 DEFINE_LOG_CATEGORY(ModuleLog)
 
-class RemoteControllerModule : public IModuleInterface
+void RemoteControllerModule::StartupModule()
 {
-public:
-	void StartupModule(){
-		UE_LOG(ModuleLog, Warning, TEXT("CloudyGame: RemoteController Starting"));
-		RestartServices();
-    }
+	UE_LOG(ModuleLog, Warning, TEXT("CloudyGame: RemoteController Module Starting"));
+	RestartServices();
+}
 
-	void ShutdownModule()
-	{
-		UE_LOG(ModuleLog, Warning, TEXT("CloudyGame: RemoteController Shutting Down"));
-	}
+void RemoteControllerModule::ShutdownModule()
+{
+	UE_LOG(ModuleLog, Warning, TEXT("CloudyGame: RemoteController Module Shutting Down"));
+}
 
-protected:
-	void RestartServices(){
-		// TODO: Run the Server
-	}
-};
+void RemoteControllerModule::RestartServices()
+{
+	InitializeRemoteServer();
+}
+
+void RemoteControllerModule::InitializeRemoteServer()
+{
+	FIPv4Endpoint ServerEndpoint;
+	ServerEndpoint = CLOUDYGAME_REMOTE_CONTROLLER_SERVER_DEFAULT_ENDPOINT;
+	RemoteServer = MakeShareable(new RemoteControllerServer(ServerEndpoint));
+}
 
 IMPLEMENT_MODULE(RemoteControllerModule, Module)
