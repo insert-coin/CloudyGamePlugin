@@ -11,6 +11,6 @@ public class RemoteController : ModuleRules
 		});
 		PublicIncludePaths.AddRange(new string[] { "RemoteController/Public" });
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Engine", "Core", "Sockets", "Networking" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Engine", "Core", "Sockets", "Networking", "InputCore" });
 	}
 }
