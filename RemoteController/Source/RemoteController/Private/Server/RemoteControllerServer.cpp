@@ -26,8 +26,7 @@ bool RemoteControllerServer::StartServer(const FIPv4Endpoint& endpoint)
 
 void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
 {
-	//FUdpControllerSegment::FDataChunk DataChunk;
-	//*Data << DataChunk;
 	UE_LOG(ServerLog, Warning, TEXT("CloudyGame: RemoteController Handling Data"));
-	//UE_LOG(ServerLog, Warning, TEXT("Data: %d"), DataChunk.Data.GetData()[0]);
+	char* charData = (char*)Data->GetData(); 
+	UE_LOG(ServerLog, Warning, TEXT("Data: %s"), UTF8_TO_TCHAR(charData));
 }
