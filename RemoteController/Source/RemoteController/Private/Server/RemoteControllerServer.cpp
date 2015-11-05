@@ -29,6 +29,10 @@ void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, co
 	UE_LOG(ServerLog, Warning, TEXT("CloudyGame: RemoteController Handling Data"));
 	char* charData = (char*)Data->GetData(); 
 	UE_LOG(ServerLog, Warning, TEXT("Data: %s"), UTF8_TO_TCHAR(charData));
-	APlayerController* controller = UGameplayStatics::GetPlayerController(GEngine->GetWorld(), 0);
+	UGameInstance* gameinstance = GEngine->GameViewport->GetGameInstance();
+	UE_LOG(ServerLog, Warning, TEXT("Game Instance found"));
+	APlayerController* controller = gameinstance->GetFirstLocalPlayerController();
+	UE_LOG(ServerLog, Warning, TEXT("First Local Player controller found"));
 	controller->InputKey(FKey(UTF8_TO_TCHAR(charData)), EInputEvent::IE_Pressed, 1, false);	
+	UE_LOG(ServerLog, Warning, TEXT("TRIGGERED"));
 }
