@@ -15,16 +15,3 @@ private:
 	FSocket* ServerSocket;
 	FUdpSocketReceiver* InputReceiver;
 };
-
-namespace FUdpControllerSegment
-{
-	struct FDataChunk
-	{
-		TArray<uint8> Data;
-
-		friend FArchive& operator<<(FArchive& Ar, FDataChunk& Chunk)
-		{
-			return Ar << Chunk.Data;
-		}
-	};
-};

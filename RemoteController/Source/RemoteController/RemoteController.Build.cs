@@ -8,6 +8,7 @@ public class RemoteController : ModuleRules
 		PrivateIncludePaths.AddRange(new string[] {
 			"RemoteController/Private",
 			"RemoteController/Private/Server",
+			"RemoteController/Private/Shared",
 		});
 		PublicIncludePaths.AddRange(new string[] { "RemoteController/Public" });
 
