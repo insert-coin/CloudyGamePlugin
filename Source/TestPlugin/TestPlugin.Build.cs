@@ -42,7 +42,7 @@ public class TestPlugin : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
 			{
-				"CoreUObject", "Engine", "Slate", "SlateCore"
+				"CoreUObject", "Engine", "Slate", "SlateCore", "RenderCore"
 				// ... add private dependencies that you statically link with here ...	
 			}
             );
