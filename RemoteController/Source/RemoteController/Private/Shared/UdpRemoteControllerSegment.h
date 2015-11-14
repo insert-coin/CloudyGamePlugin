@@ -6,6 +6,7 @@ namespace FUdpRemoteControllerSegment {
 		uint32 Sequence;
 		uint8 ControllerID;
 		uint32 KeyCode;
+		uint32 CharCode;
 		uint8 InputEvent;
 
 		friend FArchive& operator<<(FArchive& Ar, FKeyBoardChunk& Chunk)
@@ -16,6 +17,7 @@ namespace FUdpRemoteControllerSegment {
 				<< Chunk.Sequence
 				<< Chunk.ControllerID
 				<< Chunk.KeyCode
+				<< Chunk.CharCode
 				<< Chunk.InputEvent;
 		}
 	};
