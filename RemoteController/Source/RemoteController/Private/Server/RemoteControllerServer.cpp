@@ -31,7 +31,7 @@ void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, co
 	char* charData = (char*)Data->GetData(); 
 	UGameInstance* gameinstance = GEngine->GameViewport->GetGameInstance();
 	UWorld* world = gameinstance->GetWorld();
-	APlayerController* controller = gameinstance->GetFirstLocalPlayerController();
+	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
 	EInputEvent ie;
 	if (Chunk.InputEvent == 2){ // Pressed
 		ie = EInputEvent::IE_Pressed;
