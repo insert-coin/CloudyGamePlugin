@@ -7,7 +7,6 @@ namespace FUdpRemoteControllerSegment {
 		uint8 ControllerID;
 		uint32 KeyCode;
 		uint8 InputEvent;
-		uint8 Unicode;
 
 		friend FArchive& operator<<(FArchive& Ar, FKeyBoardChunk& Chunk)
 		{
