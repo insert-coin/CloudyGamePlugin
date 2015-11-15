@@ -77,9 +77,17 @@ bool FTestPluginModule::Tick(float DeltaTime)
 	if (GIsRunning && IsInGameThread() && HasInputStrChanged) {
 		UE_LOG(ModuleLog, Warning, TEXT("is in game"));
 
+		if (GEngine->GameViewport == nullptr)
+		{
+			FString Msg = FAILURE_MSG;
+			UE_LOG(ModuleLog, Warning, TEXT(FAILURE_MSG));
+			SendToClient(TCPConnection, Msg);
+			return false;
+		}
+			
+
 		FString Command, ControllerIdStr;
 		int32 ControllerId;
-		bool Success = false;
 
 		InputStr.Split(" ", &Command, &ControllerIdStr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 
@@ -87,7 +95,21 @@ bool FTestPluginModule::Tick(float DeltaTime)
 
 		UE_LOG(ModuleLog, Warning, TEXT("Command: %s ControllerId: %d"), *Command, ControllerId);
 
-		ExecuteCommand(Command, ControllerId);
+		bool Success = ExecuteCommand(Command, ControllerId);
+
+
+		if (Success)
+		{
+			FString Msg = SUCCESS_MSG;
+			UE_LOG(ModuleLog, Warning, TEXT(SUCCESS_MSG));
+			SendToClient(TCPConnection, Msg);
+		}
+		else
+		{
+			FString Msg = FAILURE_MSG;
+			UE_LOG(ModuleLog, Warning, TEXT(FAILURE_MSG));
+			SendToClient(TCPConnection, Msg);
+		}
 
 		/*
 		UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
@@ -97,6 +119,16 @@ bool FTestPluginModule::Tick(float DeltaTime)
 		InputStr = "";
 		HasInputStrChanged = false;
 	}
+	return true;
+}
+
+bool FTestPluginModule::SendToClient(FSocket* Socket, FString Msg)
+{
+	TCHAR *serialisedChar = Msg.GetCharArray().GetData();
+	int32 size = FCString::Strlen(serialisedChar);
+	int32 sent = 0;
+	return Socket->Send((uint8*)TCHAR_TO_UTF8(serialisedChar), size, sent);
+
 	return true;
 }
 
@@ -131,11 +163,13 @@ bool FTestPluginModule::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpo
 	InputStr = ReceivedString;
 	HasInputStrChanged = true;
 
+	TCPConnection = ConnectionSocket;
+
 	return true;
 	
 }
 
-void FTestPluginModule::ExecuteCommand(FString Command, int32 ControllerId) {
+bool FTestPluginModule::ExecuteCommand(FString Command, int32 ControllerId) {
 	bool Success = false;
 	if (GEngine)
 	{
@@ -160,6 +194,8 @@ void FTestPluginModule::ExecuteCommand(FString Command, int32 ControllerId) {
 		}
 
 	}
+
+	return Success;
 }
 
 void FTestPluginModule::ShutdownModule()
