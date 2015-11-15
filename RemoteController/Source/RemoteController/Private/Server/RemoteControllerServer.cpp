@@ -40,6 +40,6 @@ void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, co
 		ie = EInputEvent::IE_Released;
 	}
 	FInputKeyManager manager = FInputKeyManager::Get();
-	FKey key = manager.GetKeyFromCodes(Chunk.KeyCode, Chunk.KeyCode);
+	FKey key = manager.GetKeyFromCodes(Chunk.KeyCode, Chunk.CharCode);
 	controller->InputKey(key, ie, 1, false);
 }
