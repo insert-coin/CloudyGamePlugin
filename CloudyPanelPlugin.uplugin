@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
-	"FriendlyName": "TestPlugin",
+	"FriendlyName": "CloudyPanelPlugin",
 	"Description": "",
 	"Category": "Other",
 	"CreatedBy": "",
@@ -12,8 +12,8 @@
 	"SupportURL": "",
 	"Modules": [
 		{
-			"Name": "TestPlugin",
-			"Type": "Runtime",
+			"Name": "CloudyPanelPlugin",
+			"Type": "Developer",
 			"LoadingPhase": "Default"
 		}
 	],
