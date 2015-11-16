@@ -14,8 +14,7 @@
 DEFINE_LOG_CATEGORY(ModuleLog)
 
 #define SERVER_NAME "Listener"
-#define IP "127.0.0.1"
-#define PORT_NO 55556
+#define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
 #define BUFFER_SIZE 1024
 #define THREAD_TIME 1
 #define JOIN_GAME "join"
@@ -35,7 +34,7 @@ void CCloudyPanelPluginModule::StartupModule()
 	FormatIP4ToNumber(IP, IP4Nums);
 
 	//Create Socket
-	FIPv4Endpoint Endpoint(FIPv4Address(IP4Nums[0], IP4Nums[1], IP4Nums[2], IP4Nums[3]), PORT_NO);
+	FIPv4Endpoint Endpoint(SERVER_ENDPOINT);
 	FSocket* ListenSocket = FTcpSocketBuilder(SERVER_NAME).AsReusable().BoundToEndpoint(Endpoint).Listening(8);
 
 	//Set Buffer Size
