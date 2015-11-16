@@ -54,9 +54,6 @@ public:
 	*/
 	bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg);
 
-	//Format IP String as Number Parts
-	bool CCloudyPanelPluginModule::FormatIP4ToNumber(const FString& TheIP, uint8(&Out)[4]);
-
 	//Rama's String From Binary Array
 	//This function requires #include <string>
 	FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray);

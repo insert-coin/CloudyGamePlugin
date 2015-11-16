@@ -30,8 +30,6 @@ void CCloudyPanelPluginModule::StartupModule()
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::Tick), THREAD_TIME);
 
 	// start the server (listener)
-	uint8 IP4Nums[4];
-	FormatIP4ToNumber(IP, IP4Nums);
 
 	//Create Socket
 	FIPv4Endpoint Endpoint(SERVER_ENDPOINT);
@@ -56,25 +54,6 @@ void CCloudyPanelPluginModule::ShutdownModule()
 	// we call this function before unloading the module.
 	
 	
-}
-
-//Format IP String as Number Parts
-bool CCloudyPanelPluginModule::FormatIP4ToNumber(const FString& TheIP, uint8(&Out)[4])
-{
-	//IP Formatting
-	TheIP.Replace(TEXT(" "), TEXT(""));
-
-	//String Parts
-	TArray<FString> Parts;
-	TheIP.ParseIntoArray(Parts, TEXT("."), true);
-	if (Parts.Num() != 4)
-		return false;
-
-	//String to Number Parts
-	for (int32 i = 0; i < 4; ++i)
-		Out[i] = FCString::Atoi(*Parts[i]);
-
-	return true;
 }
 
 bool CCloudyPanelPluginModule::Tick(float DeltaTime)
