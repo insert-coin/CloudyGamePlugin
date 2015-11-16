@@ -15,7 +15,7 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 
 #define SERVER_NAME "Listener"
 #define IP "127.0.0.1"
-#define PORT_NO 55555
+#define PORT_NO 55556
 #define BUFFER_SIZE 1024
 #define THREAD_TIME 1
 #define JOIN_GAME "join"
