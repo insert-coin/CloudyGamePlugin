@@ -17,11 +17,8 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
 #define BUFFER_SIZE 1024
 #define THREAD_TIME 1
-#define JOIN_GAME "join"
-#define QUIT_GAME "quit"
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
-
 
 void CCloudyPanelPluginModule::StartupModule()
 {
@@ -60,20 +57,19 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 {
 	bool Success = false;
 
-	UE_LOG(ModuleLog, Warning, TEXT("Tick"));
 	if (HasInputStrChanged) {
 
 		if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
 		{
 
 			// Split input into Command and ControllerId
-			FString Command, ControllerIdStr;
-			int32 ControllerId;
-
-			InputStr.Split(" ", &Command, &ControllerIdStr, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-			ControllerId = FCString::Atoi(*ControllerIdStr);
-			UE_LOG(ModuleLog, Warning, TEXT("Command: %s ControllerId: %d"), *Command, ControllerId);
-
+			FString CommandStr = InputStr.Mid(0, 4);
+			FString ControllerIdStr = InputStr.Mid(4, 4);
+			int32 Command = FCString::Atoi(*CommandStr);
+			int32 ControllerId = FCString::Atoi(*ControllerIdStr);
+			
+			//UE_LOG(ModuleLog, Warning, TEXT("Command: %d ControllerId: %d"), Command, ControllerId);
+			
 			Success = ExecuteCommand(Command, ControllerId);
 
 			InputStr = "";
@@ -127,7 +123,7 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 	int32 Read = 0;
 	ConnectionSocket->Recv(ReceivedData.GetData(), ReceivedData.Num(), Read);
 	FString ReceivedString = StringFromBinaryArray(ReceivedData);
-	UE_LOG(ModuleLog, Warning, TEXT("Data: %s"), *ReceivedString);
+	// UE_LOG(ModuleLog, Warning, TEXT("Data: %s"), *ReceivedString);
 
 	InputStr = ReceivedString;
 	HasInputStrChanged = true;
@@ -138,7 +134,7 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 
 }
 
-bool CCloudyPanelPluginModule::ExecuteCommand(FString Command, int32 ControllerId) {
+bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId) {
 	bool Success = false;
 	if (GEngine)
 	{

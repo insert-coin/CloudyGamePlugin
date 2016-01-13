@@ -20,10 +20,16 @@ public:
 	/**
 	* Executes commands such as add and remove player on the gamethread
 	*
-	* @param Command The command to be executed
+	* @param Command The command to be executed (enumerated)
 	* @param ControllerId The Controller Id on which command should be executed
 	*/
-	bool CCloudyPanelPluginModule::ExecuteCommand(FString Command, int32 ControllerId);
+	/*=============================================================================
+		Command Format
+		Incoming String: [01234567]
+		[0123] - Command (enumerated)
+		[4567] - Controller ID
+	=============================================================================*/
+	bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId);
 
 	/**
 	* Handles input passed by TCP listener
@@ -64,5 +70,13 @@ public:
 	FSocket* TCPConnection;
 	FString InputStr;
 	bool HasInputStrChanged;
+
+	/**
+	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin
+	*/
+	enum CommandList {
+		JOIN_GAME,
+		QUIT_GAME
+	};
 
 };
