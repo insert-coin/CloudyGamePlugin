@@ -33,7 +33,7 @@ void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, co
 	UWorld* world = gameinstance->GetWorld();
 	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
 
-    if (Chunk.InputType == 0 && Chunk.CharCode != 27) { // Keyboard && not ESC key (ESC crashes UE)
+	if (Chunk.InputType == 0 && Chunk.CharCode != 27) { // Keyboard && not ESC key (ESC crashes UE)
 		EInputEvent ie;
 		if (Chunk.InputEvent == 2){ // Pressed
 			ie = EInputEvent::IE_Pressed;
