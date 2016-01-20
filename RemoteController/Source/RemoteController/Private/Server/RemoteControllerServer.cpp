@@ -32,14 +32,26 @@ void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, co
 	UGameInstance* gameinstance = GEngine->GameViewport->GetGameInstance();
 	UWorld* world = gameinstance->GetWorld();
 	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
-	EInputEvent ie;
-	if (Chunk.InputEvent == 2){ // Pressed
-		ie = EInputEvent::IE_Pressed;
+
+	if (Chunk.InputType == 0 && Chunk.CharCode != 27) { // Keyboard && not ESC key (ESC crashes UE)
+		EInputEvent ie;
+		if (Chunk.InputEvent == 2){ // Pressed
+			ie = EInputEvent::IE_Pressed;
+		}
+		else if (Chunk.InputEvent == 3){ // Released
+			ie = EInputEvent::IE_Released;
+		}
+		FInputKeyManager manager = FInputKeyManager::Get();
+		FKey key = manager.GetKeyFromCodes(Chunk.KeyCode, Chunk.CharCode);
+		controller->InputKey(key, ie, 1, false);
 	}
-	else if (Chunk.InputEvent == 3){ // Released
-		ie = EInputEvent::IE_Released;
+	else if (Chunk.InputType == 1) { // Mouse
+		// InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
+		float deltaX = Chunk.KeyCode;
+		float deltaY = Chunk.CharCode;
+		FKey mouseX = EKeys::MouseX;
+		FKey mouseY = EKeys::MouseY;
+		controller->InputAxis(mouseX, deltaX, 0.025, 1, false);
+		controller->InputAxis(mouseY, -deltaY, 0.025, 1, false);
 	}
-	FInputKeyManager manager = FInputKeyManager::Get();
-	FKey key = manager.GetKeyFromCodes(Chunk.KeyCode, Chunk.CharCode);
-	controller->InputKey(key, ie, 1, false);
 }
