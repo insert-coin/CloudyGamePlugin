@@ -49,6 +49,9 @@ public:
 	*/
 	bool CCloudyPanelPluginModule::Tick(float DeltaTime);
 
+	// Timer for capturing frames
+	bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime);
+
 
 	/** Helper Methods*/
 
