@@ -22,7 +22,7 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
 #define BUFFER_SIZE 1024
 #define CONNECTION_THREAD_TIME 1 // in seconds
-#define FRAME_CAPTURE_THREAD_TIME 0.5 // in seconds
+#define FPS 4 // frames per second
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
 #define PIXEL_SIZE 4
@@ -30,11 +30,10 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 void CCloudyPanelPluginModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+
+	// Set up to receive commands from CloudyWeb/CloudyPanel
 	// Start timer function to check on client connection
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::Tick), CONNECTION_THREAD_TIME);
-
-	// timer to capture frames
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CaptureFrame), FRAME_CAPTURE_THREAD_TIME);
 
 	// start the server (listener)
 
@@ -52,14 +51,38 @@ void CCloudyPanelPluginModule::StartupModule()
 	// initialise class variables
 	InputStr = "";
 	HasInputStrChanged = false;
+	isEngineRunning = false;
+
+	// timer to capture frames
+	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CaptureFrame), 1.0 / FPS);
 	
+}
+
+void CCloudyPanelPluginModule::SetUpVideoCapture() {
+	
+	// get viewport and split screen data
+	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+		
+	ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
+	TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
+	int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
+
+	// use VideoPipe (class variable) to pass frames to encoder
+	int sizeX = ReadingViewport->GetSizeXY().X;
+	int sizeY = ReadingViewport->GetSizeXY().Y;
+
+	//UE_LOG(ModuleLog, Warning, TEXT("Width: %d Height: %d"), sizeX, sizeY);
+	std::stringstream sstm;
+	sstm << "ffmpeg -y -loglevel verbose " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -an -f avi -r " << FPS << " output.avi 2> out.txt";
+
+	VideoPipe = _popen(sstm.str().c_str(), "wb"); // write as binary
+
 }
 
 void CCloudyPanelPluginModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-	
+	// we call this function before unloading the module.	
 	
 }
 
@@ -90,8 +113,7 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 		if (Success) {
 			SendToClient(TCPConnection, SUCCESS_MSG);
 		}
-		else
-		{
+		else {
 			SendToClient(TCPConnection, FAILURE_MSG);
 		}
 
@@ -103,80 +125,52 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 
 bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
 	//UE_LOG(ModuleLog, Warning, TEXT("Testing capture frame"));
+	UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+	
+	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) { // engine has been started
+		isEngineRunning = true;
+		CCloudyPanelPluginModule::SetUpVideoCapture();
+		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
+	}
+	else if (isEngineRunning && !(GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())) { // engine has been stopped
+		isEngineRunning = false;
+		UE_LOG(ModuleLog, Warning, TEXT("engine stopped"));
+		
+		fclose(VideoPipe);
+	}
+
 	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
 	{
+		
 		// init buffers for each player, up to 4
 		TArray<FColor> OutBuffer, OutBuffer1, OutBuffer2, OutBuffer3, OutBuffer4;
+		
 		// get viewport and split screen data
 		FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-		
-		ReadingViewport->ReadPixels(OutBuffer);
+		ReadingViewport->ReadPixels(FrameBuffer);
 		ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
 		TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
 		int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
-		//UE_LOG(ModuleLog, Warning, TEXT("splitscreen %d"), SplitscreenType);
 
-		// use pipe for stream
-		FILE *pPipe;
-		long lSize;
+		// use VideoPipe (class variable) to pass frames to encoder
 		int sizeX = ReadingViewport->GetSizeXY().X;
 		int sizeY = ReadingViewport->GetSizeXY().Y;
-
-		//UE_LOG(ModuleLog, Warning, TEXT("Width: %d Height: %d"), sizeX, sizeY);
-
-		int fps = 2;
-		std::stringstream sstm;
-		sstm << "ffmpeg -y -loglevel verbose " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << fps << " -i - -an -f avi -r " << fps << " output.avi 2> out.txt";
-
-		pPipe = _popen(sstm.str().c_str(), "w"); // write as string
-		if (!pPipe) {
-			UE_LOG(ModuleLog, Warning, TEXT("wrong"));
-		}
-
-		lSize = sizeX * sizeY * PIXEL_SIZE;
-
 		uint32 *PixelBuffer;
-		PixelBuffer = new uint32[lSize];
-		UE_LOG(ModuleLog, Warning, TEXT("test1"));
+		PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+		
 		int i = 0;
-		for (auto& Pixel : OutBuffer) {
+		for (auto& Pixel : FrameBuffer) {
 			std::ostringstream PixelStream;
 			PixelBuffer[i] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
 			i++;
 		}
-		fwrite(PixelBuffer, 1, lSize, pPipe);
-		UE_LOG(ModuleLog, Warning, TEXT("test2"));
-		fflush(pPipe);
-		fclose(pPipe);
+
+		fwrite(PixelBuffer, sizeX * PIXEL_SIZE, sizeY, VideoPipe);
+		
+		fflush(VideoPipe);
 
 		delete []PixelBuffer;
 		
-		/*
-		HANDLE hPipe;
-		unsigned long dwWritten;
-
-		hPipe = CreateFile(TEXT("\\\\.\\pipe\\test_pipe"),
-			GENERIC_READ | GENERIC_WRITE,
-			0,
-			NULL,
-			OPEN_EXISTING,
-			0,
-			NULL);
-		int count = 0;
-		if (hPipe != INVALID_HANDLE_VALUE) {
-			uint32 PixelBuffer;
-			for (auto& Pixel : OutBuffer) {
-				std::ostringstream PixelStream;
-				PixelBuffer = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
-
-				// convert stream to lpcvoid to write, 4 colour bytes + string terminating char
-				WriteFile(hPipe, (LPCVOID)&PixelBuffer, PIXEL_SIZE, &dwWritten, NULL);
-			}
-		}
-
-		CloseHandle(hPipe);
-		UE_LOG(ModuleLog, Warning, TEXT("DONE!"));
-		*/
 	}
 	return true;
 }

@@ -67,12 +67,21 @@ public:
 	//This function requires #include <string>
 	FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray);
 
+	/** Video Capture*/
+	void CCloudyPanelPluginModule::SetUpVideoCapture();
+
 
 	/** Class Variables */
 
+	// For TCP listener
 	FSocket* TCPConnection;
 	FString InputStr;
 	bool HasInputStrChanged;
+
+	// For Video capture
+	FILE* VideoPipe;
+	TArray<FColor> FrameBuffer;
+	bool isEngineRunning;
 
 	/**
 	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin
