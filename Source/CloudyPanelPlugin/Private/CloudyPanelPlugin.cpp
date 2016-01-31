@@ -7,7 +7,12 @@
 
 #include "CloudyPanelPluginPrivatePCH.h"
 #include "CloudyPanelPlugin.h"
+
+#include <stdio.h>
 #include <string>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 
 #define LOCTEXT_NAMESPACE "CCloudyPanelPluginModule"
 
@@ -16,15 +21,19 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define SERVER_NAME "Listener"
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
 #define BUFFER_SIZE 1024
-#define THREAD_TIME 1
+#define CONNECTION_THREAD_TIME 1 // in seconds
+#define FPS 4 // frames per second
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
+#define PIXEL_SIZE 4
 
 void CCloudyPanelPluginModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+
+	// Set up to receive commands from CloudyWeb/CloudyPanel
 	// Start timer function to check on client connection
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::Tick), THREAD_TIME);
+	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::Tick), CONNECTION_THREAD_TIME);
 
 	// start the server (listener)
 
@@ -36,20 +45,44 @@ void CCloudyPanelPluginModule::StartupModule()
 	int32 NewSize = 0;
 	ListenSocket->SetReceiveBufferSize(BUFFER_SIZE, NewSize);
 
-	FTcpListener* TcpListener = new FTcpListener(*ListenSocket, THREAD_TIME);
+	FTcpListener* TcpListener = new FTcpListener(*ListenSocket, CONNECTION_THREAD_TIME);
 	TcpListener->OnConnectionAccepted().BindRaw(this, &CCloudyPanelPluginModule::InputHandler);
 
 	// initialise class variables
 	InputStr = "";
 	HasInputStrChanged = false;
+	isEngineRunning = false;
+
+	// timer to capture frames
+	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CaptureFrame), 1.0 / FPS);
 	
+}
+
+void CCloudyPanelPluginModule::SetUpVideoCapture() {
+	
+	// get viewport and split screen data
+	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+		
+	ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
+	TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
+	int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
+
+	// use VideoPipe (class variable) to pass frames to encoder
+	int sizeX = ReadingViewport->GetSizeXY().X;
+	int sizeY = ReadingViewport->GetSizeXY().Y;
+
+	//UE_LOG(ModuleLog, Warning, TEXT("Width: %d Height: %d"), sizeX, sizeY);
+	std::stringstream sstm;
+	sstm << "ffmpeg -y -loglevel verbose " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -an -f avi -r " << FPS << " output.avi 2> out.txt";
+
+	VideoPipe = _popen(sstm.str().c_str(), "wb"); // write as binary
+
 }
 
 void CCloudyPanelPluginModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-	
+	// we call this function before unloading the module.	
 	
 }
 
@@ -80,13 +113,65 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 		if (Success) {
 			SendToClient(TCPConnection, SUCCESS_MSG);
 		}
-		else
-		{
+		else {
 			SendToClient(TCPConnection, FAILURE_MSG);
 		}
 
 	}
 
+	return true;
+}
+
+
+bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
+	//UE_LOG(ModuleLog, Warning, TEXT("Testing capture frame"));
+	UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+	
+	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) { // engine has been started
+		isEngineRunning = true;
+		CCloudyPanelPluginModule::SetUpVideoCapture();
+		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
+	}
+	else if (isEngineRunning && !(GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())) { // engine has been stopped
+		isEngineRunning = false;
+		UE_LOG(ModuleLog, Warning, TEXT("engine stopped"));
+		
+		fclose(VideoPipe);
+	}
+
+	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
+	{
+		
+		// init buffers for each player, up to 4
+		TArray<FColor> OutBuffer, OutBuffer1, OutBuffer2, OutBuffer3, OutBuffer4;
+		
+		// get viewport and split screen data
+		FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+		ReadingViewport->ReadPixels(FrameBuffer);
+		ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
+		TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
+		int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
+
+		// use VideoPipe (class variable) to pass frames to encoder
+		int sizeX = ReadingViewport->GetSizeXY().X;
+		int sizeY = ReadingViewport->GetSizeXY().Y;
+		uint32 *PixelBuffer;
+		PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+		
+		int i = 0;
+		for (auto& Pixel : FrameBuffer) {
+			std::ostringstream PixelStream;
+			PixelBuffer[i] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
+			i++;
+		}
+
+		fwrite(PixelBuffer, sizeX * PIXEL_SIZE, sizeY, VideoPipe);
+		
+		fflush(VideoPipe);
+
+		delete []PixelBuffer;
+		
+	}
 	return true;
 }
 
