@@ -22,7 +22,7 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
 #define BUFFER_SIZE 1024
 #define CONNECTION_THREAD_TIME 1 // in seconds
-#define FPS 4 // frames per second
+#define FPS 5 // frames per second
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
 #define PIXEL_SIZE 4
@@ -73,8 +73,7 @@ void CCloudyPanelPluginModule::SetUpVideoCapture() {
 
 	//UE_LOG(ModuleLog, Warning, TEXT("Width: %d Height: %d"), sizeX, sizeY);
 	std::stringstream sstm;
-	sstm << "ffmpeg -y -loglevel verbose " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -an -f avi -r " << FPS << " output.avi 2> out.txt";
-
+	sstm << "ffmpeg -y -loglevel verbose -re " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -an -f rtp rtp://127.0.0.1:1234 -r " << FPS << " 2> out.txt";
 	VideoPipe = _popen(sstm.str().c_str(), "wb"); // write as binary
 
 }
@@ -124,8 +123,7 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 
 
 bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
-	//UE_LOG(ModuleLog, Warning, TEXT("Testing capture frame"));
-	UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
 	
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) { // engine has been started
 		isEngineRunning = true;
@@ -162,6 +160,8 @@ bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
 		for (auto& Pixel : FrameBuffer) {
 			std::ostringstream PixelStream;
 			PixelBuffer[i] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
+			// equivalent function using bitshift - can compare performance later
+			// PixelBuffer[i] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
 			i++;
 		}
 
