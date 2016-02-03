@@ -24,16 +24,15 @@ bool RemoteControllerServer::StartServer(const FIPv4Endpoint& endpoint)
 	return true;
 }
 
-void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
+void RemoteControllerServer::ProcessKeyboardInput(const FArrayReaderPtr& Data)
 {
-	FUdpRemoteControllerSegment::FKeyBoardChunk Chunk;
+	FUdpRemoteControllerSegment::FKeyboardInputChunk Chunk;
 	*Data << Chunk;
-	char* charData = (char*)Data->GetData(); 
 	UGameInstance* gameinstance = GEngine->GameViewport->GetGameInstance();
 	UWorld* world = gameinstance->GetWorld();
 	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
 
-	if (Chunk.InputType == 0 && Chunk.CharCode != 27) { // Keyboard && not ESC key (ESC crashes UE)
+	if (Chunk.CharCode != 27) { // not ESC key (ESC crashes UE)
 		EInputEvent ie;
 		if (Chunk.InputEvent == 2){ // Pressed
 			ie = EInputEvent::IE_Pressed;
@@ -45,13 +44,36 @@ void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, co
 		FKey key = manager.GetKeyFromCodes(Chunk.KeyCode, Chunk.CharCode);
 		controller->InputKey(key, ie, 1, false);
 	}
-	else if (Chunk.InputType == 1) { // Mouse
-		// InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
-		float deltaX = Chunk.KeyCode;
-		float deltaY = Chunk.CharCode;
-		FKey mouseX = EKeys::MouseX;
-		FKey mouseY = EKeys::MouseY;
-		controller->InputAxis(mouseX, deltaX, 0.025, 1, false);
-		controller->InputAxis(mouseY, -deltaY, 0.025, 1, false);
+}
+
+
+void RemoteControllerServer::ProcessMouseInput(const FArrayReaderPtr& Data)
+{
+	FUdpRemoteControllerSegment::FMouseInputChunk Chunk;
+	*Data << Chunk;
+	UGameInstance* gameinstance = GEngine->GameViewport->GetGameInstance();
+	UWorld* world = gameinstance->GetWorld();
+	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
+
+	// InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
+	FKey mouseX = EKeys::MouseX;
+	FKey mouseY = EKeys::MouseY;
+	controller->InputAxis(mouseX, Chunk.XAxis, 0.025, 1, false);
+	controller->InputAxis(mouseY, -Chunk.YAxis, 0.025, 1, false);
+}
+
+void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
+{
+	FUdpRemoteControllerSegment::FHeaderChunk Chunk;
+	*Data << Chunk;
+
+	switch (Chunk.SegmentType)
+	{
+	case EUdpRemoteControllerSegment::KeyboardInput:
+		ProcessKeyboardInput(Data);
+		break;
+	case EUdpRemoteControllerSegment::MouseInput:
+		ProcessMouseInput(Data);
+		break;
 	}
 }
