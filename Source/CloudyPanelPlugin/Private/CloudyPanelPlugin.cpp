@@ -58,25 +58,7 @@ void CCloudyPanelPluginModule::StartupModule()
 	
 }
 
-void CCloudyPanelPluginModule::SetUpVideoCapture() {
-	
-	// get viewport and split screen data
-	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-		
-	ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
-	TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
-	int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
 
-	// use VideoPipe (class variable) to pass frames to encoder
-	int sizeX = ReadingViewport->GetSizeXY().X;
-	int sizeY = ReadingViewport->GetSizeXY().Y;
-
-	//UE_LOG(ModuleLog, Warning, TEXT("Width: %d Height: %d"), sizeX, sizeY);
-	std::stringstream sstm;
-	sstm << "ffmpeg -y -loglevel verbose -re " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -an -f rtp rtp://127.0.0.1:1234 -r " << FPS << " 2> out.txt";
-	VideoPipe = _popen(sstm.str().c_str(), "wb"); // write as binary
-
-}
 
 void CCloudyPanelPluginModule::ShutdownModule()
 {
@@ -122,58 +104,6 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 }
 
 
-bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
-	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
-	
-	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) { // engine has been started
-		isEngineRunning = true;
-		CCloudyPanelPluginModule::SetUpVideoCapture();
-		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
-	}
-	else if (isEngineRunning && !(GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())) { // engine has been stopped
-		isEngineRunning = false;
-		UE_LOG(ModuleLog, Warning, TEXT("engine stopped"));
-		
-		fclose(VideoPipe);
-	}
-
-	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
-	{
-		
-		// init buffers for each player, up to 4
-		TArray<FColor> OutBuffer, OutBuffer1, OutBuffer2, OutBuffer3, OutBuffer4;
-		
-		// get viewport and split screen data
-		FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-		ReadingViewport->ReadPixels(FrameBuffer);
-		ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
-		TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
-		int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
-
-		// use VideoPipe (class variable) to pass frames to encoder
-		int sizeX = ReadingViewport->GetSizeXY().X;
-		int sizeY = ReadingViewport->GetSizeXY().Y;
-		uint32 *PixelBuffer;
-		PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
-		
-		int i = 0;
-		for (auto& Pixel : FrameBuffer) {
-			std::ostringstream PixelStream;
-			PixelBuffer[i] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
-			// equivalent function using bitshift - can compare performance later
-			// PixelBuffer[i] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
-			i++;
-		}
-
-		fwrite(PixelBuffer, sizeX * PIXEL_SIZE, sizeY, VideoPipe);
-		
-		fflush(VideoPipe);
-
-		delete []PixelBuffer;
-		
-	}
-	return true;
-}
 
 bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg)
 {
@@ -244,6 +174,161 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 	}
 
 	return Success;
+}
+
+void CCloudyPanelPluginModule::SetUpVideoCapture() {
+
+	// get viewport and split screen data
+	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+
+	ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
+	TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
+	int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
+
+	// use VideoPipe (class variable) to pass frames to encoder
+	sizeX = ReadingViewport->GetSizeXY().X;
+	sizeY = ReadingViewport->GetSizeXY().Y;
+
+	// odd frame height - for frame offset
+	if (sizeY % 2 == 1) {
+		isOddFrameHeight = true;
+		UE_LOG(ModuleLog, Warning, TEXT("Odd Height!!"));
+	}
+	else {
+		isOddFrameHeight = false;
+		UE_LOG(ModuleLog, Warning, TEXT("Even Height!!"));
+	}
+
+	// assume 2 player
+	sizeY = sizeY / 2;
+
+	//UE_LOG(ModuleLog, Warning, TEXT("Width: %d Height: %d"), sizeX, sizeY);
+	std::stringstream sstm1;
+	std::stringstream sstm2;
+
+	/*
+	// write to rtp stream
+	sstm1 << "ffmpeg -y -loglevel verbose -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -c:v libx264 -preset ultrafast -an -f rtp rtp://127.0.0.1:1234 -r " << FPS << " 2> out.txt";
+	VideoPipe1 = _popen(sstm1.str().c_str(), "wb"); // write as binary
+
+	sstm2 << "ffmpeg -y -loglevel verbose -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -c:v libx264 -preset ultrafast -an -f rtp rtp://127.0.0.1:1235 -r " << FPS << " 2> out.txt";
+	VideoPipe2 = _popen(sstm2.str().c_str(), "wb"); // write as binary
+	*/
+
+	// write to file
+	sstm1 << "ffmpeg -y -loglevel verbose -re " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -an -f avi output1.avi -r " << FPS << " 2> out1.txt";
+	VideoPipe1 = _popen(sstm1.str().c_str(), "wb"); // write as binary
+
+	sstm2 << "ffmpeg -y -loglevel verbose -re " << "-f rawvideo -pix_fmt rgba -s " << sizeX << "x" << sizeY << " -r " << FPS << " -i - -an -f avi output2.avi -r " << FPS << " 2> out2.txt";
+	VideoPipe2 = _popen(sstm2.str().c_str(), "wb"); // write as binary
+
+}
+
+
+bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
+	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+
+	// engine has been started
+	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
+		isEngineRunning = true;
+		CCloudyPanelPluginModule::SetUpVideoCapture();
+		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
+	}
+
+	// engine has been stopped
+	else if (isEngineRunning && !(GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())) {
+		isEngineRunning = false;
+		UE_LOG(ModuleLog, Warning, TEXT("engine stopped"));
+		fflush(VideoPipe1);
+		fflush(VideoPipe2);
+		fclose(VideoPipe1);
+		fclose(VideoPipe2);
+	}
+
+	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
+	{
+		// get viewport and split screen data
+		FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+		ReadingViewport->ReadPixels(FrameBuffer);
+		ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
+		TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
+		int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
+
+		// split screen for 2 players horizontal
+	
+		if (SplitscreenType == ESplitScreenType::TwoPlayer_Horizontal) {
+			Split2Player(FrameBuffer);
+		}
+
+		CCloudyPanelPluginModule::StreamFrameToClient();
+	}
+	return true;
+}
+
+void CCloudyPanelPluginModule::StreamFrameToClient() {
+
+	
+	// use VideoPipe (class variable) to pass frames to encoder
+	uint32 *PixelBuffer;
+
+	// Player 1
+	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+
+	int i = 0;
+	for (auto& Pixel : FrameBuffer1) {
+		std::ostringstream PixelStream;
+		PixelBuffer[i] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
+		// equivalent function using bitshift - can compare performance later
+		// PixelBuffer[i] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
+		i++;
+	}
+
+	fwrite(PixelBuffer, sizeX * PIXEL_SIZE, sizeY, VideoPipe1);
+
+	delete[]PixelBuffer;
+
+	//Player 2
+	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+
+	i = 0;
+	for (auto& Pixel : FrameBuffer2) {
+		std::ostringstream PixelStream;
+		PixelBuffer[i] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
+		// equivalent function using bitshift - can compare performance later
+		// PixelBuffer[i] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
+		i++;
+	}
+
+	fwrite(PixelBuffer, sizeX * PIXEL_SIZE, sizeY, VideoPipe2);
+
+	delete[]PixelBuffer;
+}
+
+// Split screen for 2 player
+void CCloudyPanelPluginModule::Split2Player(TArray<FColor> FrameBuffer) {
+
+	// empty buffers first
+	FrameBuffer1.Empty();
+	FrameBuffer2.Empty();
+
+	// Player 1
+	for (int i = 0; i < FrameBuffer.Num() / 2; i++) {
+		FrameBuffer1.Add(FrameBuffer[i]);
+	}
+
+	// Player 2 - deal with odd frame height
+	int StartingPixel;
+	if (isOddFrameHeight) {
+		StartingPixel = FrameBuffer.Num() / 2 + sizeX / 2;
+	}
+	else {
+		StartingPixel = FrameBuffer.Num() / 2;
+	}
+
+	for (int i = StartingPixel; i < FrameBuffer.Num(); i++) {
+		FrameBuffer2.Add(FrameBuffer[i]);
+	}
+
 }
 
 #undef LOCTEXT_NAMESPACE
