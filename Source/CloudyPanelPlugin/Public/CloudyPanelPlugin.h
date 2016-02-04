@@ -69,7 +69,8 @@ public:
 
 	/** Video Capture*/
 	void CCloudyPanelPluginModule::SetUpVideoCapture();
-
+	void CCloudyPanelPluginModule::Split2Player(TArray<FColor> FrameBuffer);
+	void CCloudyPanelPluginModule::StreamFrameToClient();
 
 	/** Class Variables */
 
@@ -79,9 +80,12 @@ public:
 	bool HasInputStrChanged;
 
 	// For Video capture
-	FILE* VideoPipe;
-	TArray<FColor> FrameBuffer;
+	FILE* VideoPipe1;
+	FILE* VideoPipe2;
+	TArray<FColor> FrameBuffer, FrameBuffer1, FrameBuffer2;
 	bool isEngineRunning;
+	bool isOddFrameHeight;
+	int sizeX, sizeY;
 
 	/**
 	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin
