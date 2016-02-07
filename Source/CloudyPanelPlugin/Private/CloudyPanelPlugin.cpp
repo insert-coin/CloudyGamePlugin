@@ -168,6 +168,7 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 			if (ExistingPlayer != NULL)
 			{
 				GameInstance->RemoveLocalPlayer(ExistingPlayer);
+				NumberOfPlayers--;
 				Success = true;
 			}
 		}
