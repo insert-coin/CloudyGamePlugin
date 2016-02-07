@@ -5,7 +5,7 @@ Plugin to interface between CloudyPanel and Engine
 ## Setup
 
 In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyPanelPlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins. 
-To run split screen correctly, you need to modify Unreal Engine. Go to UGameViewportClient.cpp and edit the function UGameViewportClient::LayoutPlayers(). Change SplitType to 4 player. Edit the code as follows:
+To run split screen correctly, you need to modify Unreal Engine. Go to GameViewportClient.cpp and edit the function UGameViewportClient::LayoutPlayers(). Change SplitType to 4 player. Edit the code as follows:
 
 	Comment out this line: const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
 	Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;
