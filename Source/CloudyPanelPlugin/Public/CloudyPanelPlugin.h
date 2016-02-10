@@ -68,7 +68,7 @@ public:
 	FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray);
 
 	/** Video Capture*/
-	void CCloudyPanelPluginModule::SetUpVideoCapture();
+	void CCloudyPanelPluginModule::SetUpVideoCapture(int ControllerId);
 	void CCloudyPanelPluginModule::StreamFrameToClient();
 	int CCloudyPanelPluginModule::GetNumberOfPlayers();
 	// Only handle 4 player split screen for current solution
@@ -90,6 +90,7 @@ public:
 	TArray<TArray<FColor> > FrameBufferList;
 	bool isEngineRunning;
 	int sizeX, sizeY;
+	TArray<int> PlayerFrameMapping; // index is frame index, value is player index
 
 	/**
 	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin
