@@ -25,6 +25,7 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
 #define PIXEL_SIZE 4
+#define BASE_PORT_NUM 30000
 
 void CCloudyPanelPluginModule::StartupModule()
 {
@@ -210,7 +211,7 @@ void CCloudyPanelPluginModule::SetUpVideoCapture(int ControllerId) {
 
 	// encode and write players' frames to http stream
 	std::stringstream *StringStream = new std::stringstream();
-	*StringStream << "ffmpeg -y -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX/2 << "x" << sizeY/2 << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://:" << 8080 + ControllerId << " 2> out" << ControllerId << ".txt";
+	*StringStream << "ffmpeg -y -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX/2 << "x" << sizeY/2 << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://:" << BASE_PORT_NUM + ControllerId << " 2> out" << ControllerId << ".txt";
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
 	// initialise frame buffers
