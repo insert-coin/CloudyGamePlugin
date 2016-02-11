@@ -4,7 +4,6 @@
 =============================================================================*/
 //TCP implementation from : https ://wiki.unrealengine.com/TCP_Socket_Listener,_Receive_Binary_Data_From_an_IP/Port_Into_UE4,_(Full_Code_Sample)
 
-
 #include "CloudyPanelPluginPrivatePCH.h"
 #include "CloudyPanelPlugin.h"
 
@@ -52,12 +51,12 @@ void CCloudyPanelPluginModule::StartupModule()
 	InputStr = "";
 	HasInputStrChanged = false;
 	isEngineRunning = false;
+	PlayerFrameMapping.Add(0); // add default first player
 
 	// timer to capture frames
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CaptureFrame), 1.0 / FPS);
 	
 }
-
 
 
 void CCloudyPanelPluginModule::ShutdownModule()
@@ -66,6 +65,7 @@ void CCloudyPanelPluginModule::ShutdownModule()
 	// we call this function before unloading the module.	
 	
 }
+
 
 bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 {
@@ -104,7 +104,6 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 }
 
 
-
 bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg)
 {
 	TCHAR *serialisedChar = Msg.GetCharArray().GetData();
@@ -115,6 +114,7 @@ bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg)
 	return true;
 }
 
+
 //Rama's String From Binary Array
 //This function requires #include <string>
 FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray)
@@ -123,6 +123,7 @@ FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& Bin
 	std::string cstr(reinterpret_cast<const char*>(BinaryArray.GetData()), BinaryArray.Num());
 	return FString(cstr.c_str());
 }
+
 
 bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint) {
 
@@ -149,6 +150,7 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 
 }
 
+
 bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId) {
 	bool Success = false;
 	if (GEngine)
@@ -159,7 +161,8 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 		{
 			FString Error;
 			GameInstance->CreateLocalPlayer(ControllerId, Error, true);
-			SetUpVideoCapture();
+			SetUpVideoCapture(ControllerId);
+			PlayerFrameMapping.Add(ControllerId);
 			Success = true;
 		}
 		else if (Command == QUIT_GAME)
@@ -169,6 +172,11 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 			{
 				GameInstance->RemoveLocalPlayer(ExistingPlayer);
 				NumberOfPlayers--;
+				int PipeIndex = PlayerFrameMapping[ControllerId];
+				fflush(VideoPipeList[PipeIndex]);
+				fclose(VideoPipeList[PipeIndex]);
+				PlayerFrameMapping.Remove(ControllerId);
+				VideoPipeList.RemoveAt(PipeIndex);
 				Success = true;
 			}
 		}
@@ -178,8 +186,9 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 	return Success;
 }
 
+
 // call this for each player join
-void CCloudyPanelPluginModule::SetUpVideoCapture() {
+void CCloudyPanelPluginModule::SetUpVideoCapture(int ControllerId) {
 
 	// get viewport and number of players
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
@@ -201,7 +210,7 @@ void CCloudyPanelPluginModule::SetUpVideoCapture() {
 
 	// encode and write players' frames to http stream
 	std::stringstream *StringStream = new std::stringstream();
-	*StringStream << "ffmpeg -y -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX/2 << "x" << sizeY/2 << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://:" << 8080 + NumberOfPlayers - 1 << " 2> out" << NumberOfPlayers << ".txt";
+	*StringStream << "ffmpeg -y -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX/2 << "x" << sizeY/2 << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://:" << 8080 + ControllerId << " 2> out" << ControllerId << ".txt";
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
 	// initialise frame buffers
@@ -212,13 +221,13 @@ void CCloudyPanelPluginModule::SetUpVideoCapture() {
 
 
 bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
-	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+	UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
 
 	// engine has been started
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
 		isEngineRunning = true;
 		NumberOfPlayers = 0;
-		CCloudyPanelPluginModule::SetUpVideoCapture();
+		CCloudyPanelPluginModule::SetUpVideoCapture(0);
 		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
 		
 	}
@@ -230,8 +239,9 @@ bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
 		
 		for (int i = 0; i < NumberOfPlayers; i++) {
 			// flush and close video pipes
-			fflush(VideoPipeList[i]);
-			fclose(VideoPipeList[i]);
+			int PipeIndex = PlayerFrameMapping[i];
+			fflush(VideoPipeList[PipeIndex]);
+			fclose(VideoPipeList[PipeIndex]);
 		}
 	}
 
@@ -249,6 +259,7 @@ bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
 	return true;
 }
 
+
 void CCloudyPanelPluginModule::StreamFrameToClient() {
 
 	// use VideoPipe (class variable) to pass frames to encoder
@@ -256,9 +267,10 @@ void CCloudyPanelPluginModule::StreamFrameToClient() {
 	FColor Pixel;
 	for (int i = 0; i < NumberOfPlayers; i++) {
 		PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
-		
+		//UE_LOG(ModuleLog, Warning, TEXT("FrameIndex %d"), FrameIndex);
 		for (int j = 0; j < FrameBufferList[i].Num(); j++) {
-			Pixel = FrameBufferList[i][j];
+			
+			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
 			PixelBuffer[j] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
 			// equivalent function using bitshift - can compare performance later
 			// PixelBuffer[i] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
@@ -270,6 +282,7 @@ void CCloudyPanelPluginModule::StreamFrameToClient() {
 	}
 
 }
+
 
 // Split screen for 4 player
 void CCloudyPanelPluginModule::Split4Player(TArray<FColor> FrameBuffer, int FrameOffset) {
@@ -303,6 +316,7 @@ void CCloudyPanelPluginModule::Split4Player(TArray<FColor> FrameBuffer, int Fram
 
 }
 
+
 int CCloudyPanelPluginModule::GetNumberOfPlayers() {
 
 	ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
@@ -323,6 +337,7 @@ int CCloudyPanelPluginModule::GetNumberOfPlayers() {
 			return 1;
 	}
 }
+
 
 #undef LOCTEXT_NAMESPACE
 	
