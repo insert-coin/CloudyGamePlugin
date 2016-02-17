@@ -70,7 +70,6 @@ public:
 	/** Video Capture*/
 	void CCloudyPanelPluginModule::SetUpVideoCapture(int ControllerId);
 	void CCloudyPanelPluginModule::StreamFrameToClient();
-	int CCloudyPanelPluginModule::GetNumberOfPlayers();
 	// Only handle 4 player split screen for current solution
 	void CCloudyPanelPluginModule::Split4Player();
 
@@ -84,12 +83,10 @@ public:
 
 	// For Video capture
 	int NumberOfPlayers;
-	int FrameOffset; // offset for reading frame when frame height is odd
 	TArray<FILE*> VideoPipeList;
-	TArray<FColor> FrameBuffer;
 	TArray<TArray<FColor> > FrameBufferList;
 	bool isEngineRunning;
-	int sizeX, sizeY;
+	int sizeX, sizeY, halfSizeX, halfSizeY;
 	TArray<int> PlayerFrameMapping; // index is frame index, value is player index
 
 	/**
