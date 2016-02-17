@@ -72,7 +72,7 @@ public:
 	void CCloudyPanelPluginModule::StreamFrameToClient();
 	int CCloudyPanelPluginModule::GetNumberOfPlayers();
 	// Only handle 4 player split screen for current solution
-	void CCloudyPanelPluginModule::Split4Player(TArray<FColor> FrameBuffer, int FrameOffset);
+	void CCloudyPanelPluginModule::Split4Player();
 
 
 	/** Class Variables */

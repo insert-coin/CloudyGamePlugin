@@ -64,7 +64,6 @@ void CCloudyPanelPluginModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.	
-	
 }
 
 
@@ -200,19 +199,22 @@ void CCloudyPanelPluginModule::SetUpVideoCapture(int ControllerId) {
 	// use VideoPipe (class variable) to pass frames to encoder
 	sizeX = ReadingViewport->GetSizeXY().X;
 	sizeY = ReadingViewport->GetSizeXY().Y;
-
+	UE_LOG(ModuleLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
+	
 	// determine offset for bottom half of the screen when frame height is odd
-	int FrameSize = ReadingViewport->GetSizeXY().Size();
+	int FrameSize = sizeX * sizeY;
 	if (sizeY % 2 == 1) { // odd
 		FrameOffset = FrameSize / 2 + sizeX / 2;
 	} else { // even
 		FrameOffset = FrameSize / 2;
 	}
+	UE_LOG(ModuleLog, Warning, TEXT("FrameSize %d FrameOffset %d"), FrameSize, FrameOffset);
 
 	// encode and write players' frames to http stream
 	std::stringstream *StringStream = new std::stringstream();
 	*StringStream << "ffmpeg -y -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX/2 << "x" << sizeY/2 << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://:" << BASE_PORT_NUM + ControllerId << " 2> out" << ControllerId << ".txt";
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
+	delete StringStream;
 
 	// initialise frame buffers
 	TArray<FColor> TempFrameBuffer;
@@ -222,7 +224,7 @@ void CCloudyPanelPluginModule::SetUpVideoCapture(int ControllerId) {
 
 
 bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
-	UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
 
 	// engine has been started
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
@@ -249,11 +251,11 @@ bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
 	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
 	{
 		// get viewport and split screen data
-		FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-		ReadingViewport->ReadPixels(FrameBuffer);
+		//FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+		//ReadingViewport->ReadPixels(FrameBuffer);
 		
 		// split screen for 4 players
-		Split4Player(FrameBuffer, FrameOffset);
+		Split4Player();
 
 		StreamFrameToClient();
 	}
@@ -266,54 +268,43 @@ void CCloudyPanelPluginModule::StreamFrameToClient() {
 	// use VideoPipe (class variable) to pass frames to encoder
 	uint32 *PixelBuffer;
 	FColor Pixel;
-	for (int i = 0; i < NumberOfPlayers; i++) {
-		PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
-		//UE_LOG(ModuleLog, Warning, TEXT("FrameIndex %d"), FrameIndex);
+	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+
+	for (int i = 0; i < NumberOfPlayers; i++) {	
 		for (int j = 0; j < FrameBufferList[i].Num(); j++) {
 			
 			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
-			PixelBuffer[j] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
+			//PixelBuffer[j] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
 			// equivalent function using bitshift - can compare performance later
-			// PixelBuffer[i] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
+			PixelBuffer[j] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
 		}
 
 		fwrite(PixelBuffer, sizeX * PIXEL_SIZE/2, sizeY/2, VideoPipeList[i]);
-
-		delete[]PixelBuffer;
 	}
-
+	delete[]PixelBuffer;
 }
 
 
 // Split screen for 4 player
-void CCloudyPanelPluginModule::Split4Player(TArray<FColor> FrameBuffer, int FrameOffset) {
+void CCloudyPanelPluginModule::Split4Player() {
 
-	// empty buffers first
-	for (int i = 0; i < NumberOfPlayers; i++) {
-		FrameBufferList[i].Empty();
-	}
+	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
 
-	for (int i = 0; i < FrameBuffer.Num() / 2; i++) {
-		// Player 1
-		if (i % sizeX < sizeX / 2) { // potentially expensive. may have to optimise later
-			FrameBufferList[0].Add(FrameBuffer[i]);
-		}
-		else { // Player 2
-			if (NumberOfPlayers > 1)
-				FrameBufferList[1].Add(FrameBuffer[i]);
-		}
-	}
+	FIntRect Screen1 = FIntRect(0, 0, sizeX/2, sizeY/2);
+	FIntRect Screen2 = FIntRect(sizeX/2, 0, sizeX, sizeY/2);
+	FIntRect Screen3 = FIntRect(0, sizeY / 2, sizeX/2, sizeY);
+	FIntRect Screen4 = FIntRect(sizeX / 2, sizeY / 2, sizeX, sizeY);
+	FReadSurfaceDataFlags flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm,
+		ECubeFace::CubeFace_NegX);
 
-	// deal with odd frame height
-	for (int i = FrameOffset; i < FrameBuffer.Num(); i++) {
-		if (i % sizeX < sizeX / 2 && NumberOfPlayers > 2) { // Player 3
-			FrameBufferList[2].Add(FrameBuffer[i]);
-		}
-		else { // Player 4
-			if (NumberOfPlayers > 3)
-				FrameBufferList[3].Add(FrameBuffer[i]);
-		}
-	}
+	if (NumberOfPlayers > 0)
+		ReadingViewport->ReadPixels(FrameBufferList[0], flags, Screen1);
+	if (NumberOfPlayers > 1)
+		ReadingViewport->ReadPixels(FrameBufferList[1], flags, Screen2);
+	if (NumberOfPlayers > 2)
+		ReadingViewport->ReadPixels(FrameBufferList[2], flags, Screen3);
+	if (NumberOfPlayers > 3)
+		ReadingViewport->ReadPixels(FrameBufferList[3], flags, Screen4);
 
 }
 
