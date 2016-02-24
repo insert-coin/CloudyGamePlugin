@@ -21,7 +21,7 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
 #define BUFFER_SIZE 1024
 #define CONNECTION_THREAD_TIME 1 // in seconds
-#define FPS 5 // frames per second
+#define FPS 30 // frames per second
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
 #define PIXEL_SIZE 4
@@ -52,7 +52,6 @@ void CCloudyPanelPluginModule::StartupModule()
 	InputStr = "";
 	HasInputStrChanged = false;
 	isEngineRunning = false;
-	PlayerFrameMapping.Add(0); // add default first player
 
 	// timer to capture frames
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CaptureFrame), 1.0 / FPS);
@@ -64,7 +63,6 @@ void CCloudyPanelPluginModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.	
-	
 }
 
 
@@ -162,8 +160,7 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 		{
 			FString Error;
 			GameInstance->CreateLocalPlayer(ControllerId, Error, true);
-			SetUpVideoCapture(ControllerId);
-			PlayerFrameMapping.Add(ControllerId);
+			SetUpPlayer(ControllerId);
 			Success = true;
 		}
 		else if (Command == QUIT_GAME)
@@ -187,48 +184,56 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 	return Success;
 }
 
-
 // call this for each player join
-void CCloudyPanelPluginModule::SetUpVideoCapture(int ControllerId) {
+void CCloudyPanelPluginModule::SetUpPlayer(int ControllerId) {
 
-	// get viewport and number of players
-	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-
-	// increase number of players
 	NumberOfPlayers++;
-
-	// use VideoPipe (class variable) to pass frames to encoder
-	sizeX = ReadingViewport->GetSizeXY().X;
-	sizeY = ReadingViewport->GetSizeXY().Y;
-
-	// determine offset for bottom half of the screen when frame height is odd
-	int FrameSize = ReadingViewport->GetSizeXY().Size();
-	if (sizeY % 2 == 1) { // odd
-		FrameOffset = FrameSize / 2 + sizeX / 2;
-	} else { // even
-		FrameOffset = FrameSize / 2;
-	}
 
 	// encode and write players' frames to http stream
 	std::stringstream *StringStream = new std::stringstream();
-	*StringStream << "ffmpeg -y -re " << " -f rawvideo -pix_fmt rgba -s " << sizeX/2 << "x" << sizeY/2 << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://:" << BASE_PORT_NUM + ControllerId << " 2> out" << ControllerId << ".txt";
+	// Need to replace the http ip with actual address when running Unreal Engine
+	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt rgba -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://192.168.1.1:" << BASE_PORT_NUM + ControllerId << " 2> out" << ControllerId << ".txt";
+
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
-	// initialise frame buffers
+	// add frame buffer for new player
 	TArray<FColor> TempFrameBuffer;
 	FrameBufferList.Add(TempFrameBuffer);
+
+	PlayerFrameMapping.Add(ControllerId);
+
+}
+
+void CCloudyPanelPluginModule::SetUpVideoCapture() {
+
+	// init frame dimension variables
+	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+	sizeX = ReadingViewport->GetSizeXY().X;
+	sizeY = ReadingViewport->GetSizeXY().Y;
+	halfSizeX = sizeX / 2;
+	halfSizeY = sizeY / 2;
+	UE_LOG(ModuleLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
+	
+	// set up split screen info
+	Screen1 = FIntRect(0, 0, halfSizeX, halfSizeY);
+	Screen2 = FIntRect(halfSizeX, 0, sizeX, halfSizeY);
+	Screen3 = FIntRect(0, halfSizeY, halfSizeX, sizeY);
+	Screen4 = FIntRect(halfSizeX, halfSizeY, sizeX, sizeY);
+	flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm, ECubeFace::CubeFace_NegX);
 
 }
 
 
 bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
-	UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
+
 
 	// engine has been started
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
 		isEngineRunning = true;
 		NumberOfPlayers = 0;
-		CCloudyPanelPluginModule::SetUpVideoCapture(0);
+		SetUpVideoCapture();
+		SetUpPlayer(0);
 		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
 		
 	}
@@ -247,14 +252,9 @@ bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
 	}
 
 	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
-	{
-		// get viewport and split screen data
-		FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-		ReadingViewport->ReadPixels(FrameBuffer);
-		
+	{	
 		// split screen for 4 players
-		Split4Player(FrameBuffer, FrameOffset);
-
+		Split4Player();
 		StreamFrameToClient();
 	}
 	return true;
@@ -266,77 +266,36 @@ void CCloudyPanelPluginModule::StreamFrameToClient() {
 	// use VideoPipe (class variable) to pass frames to encoder
 	uint32 *PixelBuffer;
 	FColor Pixel;
-	for (int i = 0; i < NumberOfPlayers; i++) {
-		PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
-		//UE_LOG(ModuleLog, Warning, TEXT("FrameIndex %d"), FrameIndex);
-		for (int j = 0; j < FrameBufferList[i].Num(); j++) {
-			
+	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+
+	for (int i = 0; i < NumberOfPlayers; i++) {	
+		int FrameSize = FrameBufferList[i].Num();
+		
+		for (int j = 0; j < FrameSize; ++j) {
 			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
-			PixelBuffer[j] = Pixel.A * 256 * 256 * 256 + Pixel.B * 256 * 256 + Pixel.G * 256 + Pixel.R;
-			// equivalent function using bitshift - can compare performance later
-			// PixelBuffer[i] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
+			PixelBuffer[j] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
 		}
 
-		fwrite(PixelBuffer, sizeX * PIXEL_SIZE/2, sizeY/2, VideoPipeList[i]);
-
-		delete[]PixelBuffer;
+		fwrite(PixelBuffer, halfSizeX * PIXEL_SIZE, halfSizeY, VideoPipeList[i]);
 	}
-
+	delete[]PixelBuffer;
 }
 
 
 // Split screen for 4 player
-void CCloudyPanelPluginModule::Split4Player(TArray<FColor> FrameBuffer, int FrameOffset) {
+void CCloudyPanelPluginModule::Split4Player() {
 
-	// empty buffers first
-	for (int i = 0; i < NumberOfPlayers; i++) {
-		FrameBufferList[i].Empty();
-	}
+	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
 
-	for (int i = 0; i < FrameBuffer.Num() / 2; i++) {
-		// Player 1
-		if (i % sizeX < sizeX / 2) { // potentially expensive. may have to optimise later
-			FrameBufferList[0].Add(FrameBuffer[i]);
-		}
-		else { // Player 2
-			if (NumberOfPlayers > 1)
-				FrameBufferList[1].Add(FrameBuffer[i]);
-		}
-	}
+	if (NumberOfPlayers > 0)
+		ReadingViewport->ReadPixels(FrameBufferList[0], flags, Screen1);
+	if (NumberOfPlayers > 1)
+		ReadingViewport->ReadPixels(FrameBufferList[1], flags, Screen2);
+	if (NumberOfPlayers > 2)
+		ReadingViewport->ReadPixels(FrameBufferList[2], flags, Screen3);
+	if (NumberOfPlayers > 3)
+		ReadingViewport->ReadPixels(FrameBufferList[3], flags, Screen4);
 
-	// deal with odd frame height
-	for (int i = FrameOffset; i < FrameBuffer.Num(); i++) {
-		if (i % sizeX < sizeX / 2 && NumberOfPlayers > 2) { // Player 3
-			FrameBufferList[2].Add(FrameBuffer[i]);
-		}
-		else { // Player 4
-			if (NumberOfPlayers > 3)
-				FrameBufferList[3].Add(FrameBuffer[i]);
-		}
-	}
-
-}
-
-
-int CCloudyPanelPluginModule::GetNumberOfPlayers() {
-
-	ULocalPlayer* FirstPlayer = GEngine->FindFirstLocalPlayerFromControllerId(0);
-	TArray<FSplitscreenData> SplitscreenInfo = FirstPlayer->ViewportClient->SplitscreenInfo;
-	int SplitscreenType = FirstPlayer->ViewportClient->GetCurrentSplitscreenConfiguration();
-	switch (SplitscreenType) {
-		case ESplitScreenType::None:
-			return 1;
-		case ESplitScreenType::TwoPlayer_Horizontal: 
-		case ESplitScreenType::TwoPlayer_Vertical:
-			return 2;
-		case ESplitScreenType::ThreePlayer_FavorBottom: 
-		case ESplitScreenType::ThreePlayer_FavorTop:
-			return 3;
-		case ESplitScreenType::FourPlayer:
-			return 4;
-		default:
-			return 1;
-	}
 }
 
 

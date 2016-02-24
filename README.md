@@ -9,17 +9,19 @@ To run split screen correctly, you need to modify Unreal Engine. Go to GameViewp
 
 	Comment out this line: const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
 	Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;
+	
+Set the IP in the function CCloudyPanelPluginModule::SetUpPlayer before streaming.
 
 ## Usage
-Split screen is now working. You will need to join game in the official way with CloudyPanel. For convenience, I have included my testing file OtherFiles/sendTCP.py, which you can use to join game. Plugin streams to HTTP, so use VLC to catch the frames. The addresses are:
+Split screen is now working. To join game, you can test using OtherFiles/sendTCP.py. Run the file and input 00000001 to add Player 1. More details in the file. Plugin streams to HTTP, so use VLC to catch the frames. The ports are:
 
-ControllerId 1: http://localhost:30000,
+ControllerId 1: <your HTTP IP>:30000,
 
-ControllerId 2: http://localhost:30001
+ControllerId 2: <your HTTP IP>:30001
 
-ControllerId 3: http://localhost:30002
+ControllerId 3: <your HTTP IP>:30002
 
-ControllerId 4: http://localhost:30003
+ControllerId 4: <your HTTP IP>:30003
 
 
 Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
