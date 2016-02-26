@@ -35,4 +35,7 @@ public:
 	}
  
     virtual bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID) = 0;// APlayerController const* PC) = 0;
+
+    //bool AttemptAuthentication(FString username, FString password);
+    //void OnRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 };

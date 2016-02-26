@@ -3,9 +3,14 @@
 #include "CloudySaveManager.h"
 #include "PlatformFeatures.h"
 #include "GameFramework/SaveGame.h"
+#include "HttpRequestAdapter.h"
+#include "HttpModule.h"
+#include "IHttpResponse.h"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
 static const int UE4_SAVEGAME_FILE_VERSION = 1;
+static const FString BaseUrl = "http://127.0.0.1:8000";
+static const FString AuthUrl = "/api-token-auth/";
 
 void CloudySaveManagerImpl::StartupModule()
 {
@@ -51,7 +56,7 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         SaveGameObject->Serialize(Ar);
 
         // Stuff that data into the save system with the desired file name
-        bSuccess = SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
+        SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
 
         // Get player ID, upload to CloudyWeb
         //ULocalPlayer::GetControllerId();
@@ -59,10 +64,64 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         //int ControllerID = LP->GetControllerId();
 
         //UE_LOG(LogTemp, Warning, TEXT("CID = %d"), ControllerID);
+
+        bSuccess = AttemptAuthentication(TEXT("user1"), TEXT("1234"));
     }
 
     return bSuccess;
 }
 
+bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString password)
+{
+    bool RequestSuccess = false;
+
+    FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
+    FString ContentString = "username=" + username + "&password=" + password;
+
+    TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+    HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    HttpRequest->SetURL(Url);
+    HttpRequest->SetVerb(TEXT("POST"));
+    
+    HttpRequest->SetContentAsString(ContentString);
+
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
+    RequestSuccess = HttpRequest->ProcessRequest();
+
+    UE_LOG(LogTemp, Warning, TEXT("URL = %s"), *Url);
+    UE_LOG(LogTemp, Warning, TEXT("ContentString = %s"), *ContentString);
+
+    return RequestSuccess;
+}
+
+void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+    FString MessageBody = "";
+
+    UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
+
+    if (!Response.IsValid())
+    {
+        MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
+        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
+
+        UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
+    }
+    else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+    {
+        MessageBody = Response->GetContentAsString();
+        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
+
+        
+        UE_LOG(LogTemp, Warning, TEXT("Message = %s"), *MessageBody);
+
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
+        MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
+    }
+
+}
  
 IMPLEMENT_MODULE(CloudySaveManagerImpl, CloudySaveManager)

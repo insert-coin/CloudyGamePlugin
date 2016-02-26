@@ -3,6 +3,7 @@
 //#include "GameplayStatics.generated.h"
 #include "Engine.h"
 #include "GameFramework/SaveGame.h"
+#include "Http.h"
 
 //
 // Forward declarations.
@@ -27,4 +28,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Game")
         bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID);// APlayerController const* PC);
 
+    bool AttemptAuthentication(FString username, FString password);
+    void OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 };

@@ -19,8 +19,9 @@ public class CloudySaveManager : ModuleRules
 				"CoreUObject",
                 "Engine",
 				"Json",
+                "Http",
 			}
         );
-        PrivateDependencyModuleNames.AddRange(new string[] { "JsonUtilities", "Http" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "JsonUtilities"});
     }
 }
