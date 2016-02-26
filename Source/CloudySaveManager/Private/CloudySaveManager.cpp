@@ -2,13 +2,7 @@
  
 #include "CloudySaveManager.h"
 #include "PlatformFeatures.h"
-#include "ObjectVersion.h"
 #include "GameFramework/SaveGame.h"
-
-#include "UObjectBase.h"
-#include "UObjectBaseUtility.h"
-#include "ArchiveUObject.h"
-#include "Archive.h"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
 static const int UE4_SAVEGAME_FILE_VERSION = 1;
@@ -48,13 +42,13 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         FEngineVersion SavedEngineVersion = GEngineVersion;
         MemoryWriter << SavedEngineVersion;
 
-        //// Write the class name so we know what class to load to
-        //FString SaveGameClassName = SaveGameObject->GetClass()->GetName();
-        //MemoryWriter << SaveGameClassName;
-        //
-        //// Then save the object state, replacing object refs and names with strings
-        //FObjectAndNameAsStringProxyArchive Ar(MemoryWriter, false);
-        //SaveGameObject->Serialize(Ar);
+        // Write the class name so we know what class to load to
+        FString SaveGameClassName = SaveGameObject->GetClass()->GetName();
+        MemoryWriter << SaveGameClassName;
+        
+        // Then save the object state, replacing object refs and names with strings
+        FObjectAndNameAsStringProxyArchive Ar(MemoryWriter, false);
+        SaveGameObject->Serialize(Ar);
 
         // Stuff that data into the save system with the desired file name
         bSuccess = SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
