@@ -1,3 +1,4 @@
+# CloudyPanelPlugin
 ## Description
 
 Plugin to interface between CloudyPanel and Engine
@@ -25,3 +26,20 @@ ControllerId 4: <your HTTP IP>:30003
 
 
 Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
+
+
+# CloudySaveManager
+### Setup
+In `YourProject/Source/YourProject/YourProject.Build.cs`, ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
+
+In whatever .cpp file you want to use the custom `Cloudy_SaveGameToSlot` functions, ensure that `#include "ICloudySaveManager.h"` is included.
+
+## Usage
+Example: 
+```cpp
+// Create a save game object
+UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+SaveGameInstance->PlayerName = TEXT("PlayerOne");
+// Save the game
+ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0);
+```
