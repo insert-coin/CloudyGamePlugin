@@ -90,7 +90,7 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb(TEXT("POST"));
     HttpRequest->SetContentAsString(ContentString);
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnAuthResponseComplete);
     RequestSuccess = HttpRequest->ProcessRequest();
 
     UE_LOG(LogTemp, Warning, TEXT("URL = %s"), *Url);
@@ -99,7 +99,7 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     return RequestSuccess;
 }
 
-void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
     FString MessageBody;
 
@@ -132,5 +132,81 @@ void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpRes
     }
 
 }
+
+USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex)
+{
+    // Load from CloudyWeb
+    // ...
+    
+    USaveGame* OutSaveGameObject = NULL;
+    
+    ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
+    // If we have a save system and a valid name..
+    if (SaveSystem && (SlotName.Len() > 0))
+    {
+        // Load raw data from slot
+        TArray<uint8> ObjectBytes;
+        bool bSuccess = SaveSystem->LoadGame(false, *SlotName, UserIndex, ObjectBytes);
+        if (bSuccess)
+        {
+            FMemoryReader MemoryReader(ObjectBytes, true);
+
+            int32 FileTypeTag;
+            MemoryReader << FileTypeTag;
+
+            int32 SavegameFileVersion;
+            if (FileTypeTag != UE4_SAVEGAME_FILE_TYPE_TAG)
+            {
+                // this is an old saved game, back up the file pointer to the beginning and assume version 1
+                MemoryReader.Seek(0);
+                SavegameFileVersion = 1;
+
+                // Note for 4.8 and beyond: if you get a crash loading a pre-4.8 version of your savegame file and 
+                // you don't want to delete it, try uncommenting these lines and changing them to use the version 
+                // information from your previous build. Then load and resave your savegame file.
+                //MemoryReader.SetUE4Ver(MyPreviousUE4Version);				// @see GPackageFileUE4Version
+                //MemoryReader.SetEngineVer(MyPreviousEngineVersion);		// @see FEngineVersion::Current()
+            }
+            else
+            {
+                // Read version for this file format
+                MemoryReader << SavegameFileVersion;
+
+                // Read engine and UE4 version information
+                int32 SavedUE4Version;
+                MemoryReader << SavedUE4Version;
+
+                FEngineVersion SavedEngineVersion;
+                MemoryReader << SavedEngineVersion;
+
+                MemoryReader.SetUE4Ver(SavedUE4Version);
+                MemoryReader.SetEngineVer(SavedEngineVersion);
+            }
+
+            // Get the class name
+            FString SaveGameClassName;
+            MemoryReader << SaveGameClassName;
+
+            // Try and find it, and failing that, load it
+            UClass* SaveGameClass = FindObject<UClass>(ANY_PACKAGE, *SaveGameClassName);
+            if (SaveGameClass == NULL)
+            {
+                SaveGameClass = LoadObject<UClass>(NULL, *SaveGameClassName);
+            }
+
+            // If we have a class, try and load it.
+            if (SaveGameClass != NULL)
+            {
+                OutSaveGameObject = NewObject<USaveGame>(GetTransientPackage(), SaveGameClass);
+
+                FObjectAndNameAsStringProxyArchive Ar(MemoryReader, true);
+                OutSaveGameObject->Serialize(Ar);
+            }
+        }
+    }
+    
+    return OutSaveGameObject;
+}
+
  
 IMPLEMENT_MODULE(CloudySaveManagerImpl, CloudySaveManager)
