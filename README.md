@@ -30,16 +30,34 @@ Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are p
 
 # CloudySaveManager
 ### Setup
-In `YourProject/Source/YourProject/YourProject.Build.cs`, ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
+- In `YourProject/Source/YourProject/YourProject.Build.cs`:
+  - Ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. 
+  - E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
 
-In whatever .cpp file you want to use the custom `Cloudy_SaveGameToSlot` functions, ensure that `#include "ICloudySaveManager.h"` is included.
+- In your .cpp file where you want to use our custom `Cloudy_SaveGameToSlot` functions: 
+  - Ensure that `#include "ICloudySaveManager.h"` is included.
 
 ## Usage
+`Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with an additional fourth parameter: the player controller index.
+
+API:
+```cpp
+UFUNCTION(BlueprintCallable, Category="Game")
+virtual bool Cloudy_SaveGameToSlot
+(
+    USaveGame * SaveGameObject,
+    const FString & SlotName,
+    const int32 UserIndex,
+    const int32 PCID // Player Controller ID of the player you are saving
+)
+```
+
 Example: 
 ```cpp
+#include "ICloudySaveManager.h"
+
 // Create a save game object
 UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
-SaveGameInstance->PlayerName = TEXT("PlayerOne");
 // Save the game
 ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0);
 ```
