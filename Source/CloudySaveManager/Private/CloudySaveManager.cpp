@@ -76,15 +76,20 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     bool RequestSuccess = false;
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
-    FString ContentString = "username=" + username + "&password=" + password;
+    FString ContentString;
+
+    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+    JsonObject->SetStringField(TEXT("username"), username);
+    JsonObject->SetStringField(TEXT("password"), password);
+
+    TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&ContentString);
+    FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter);
 
     TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb(TEXT("POST"));
-    
     HttpRequest->SetContentAsString(ContentString);
-
     HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
     RequestSuccess = HttpRequest->ProcessRequest();
 
@@ -96,7 +101,7 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
 
 void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-    FString MessageBody = "";
+    FString MessageBody;
 
     UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
 
@@ -109,12 +114,16 @@ void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpRes
     }
     else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
     {
-        MessageBody = Response->GetContentAsString();
-        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
+        //MessageBody = Response->GetContentAsString();
+        //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
 
+        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+        TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
+        FJsonSerializer::Deserialize(JsonReader, JsonObject);
+
+        MessageBody = JsonObject->GetStringField("token");
         
-        UE_LOG(LogTemp, Warning, TEXT("Message = %s"), *MessageBody);
-
+        UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *MessageBody);
     }
     else
     {
