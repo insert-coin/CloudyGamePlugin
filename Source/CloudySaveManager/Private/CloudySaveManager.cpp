@@ -68,8 +68,8 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
 
         //UE_LOG(LogTemp, Warning, TEXT("CID = %d"), ControllerID);
 
-        bSuccess = AttemptAuthentication(TEXT("user1"), TEXT("1234"));
-        //bSuccess = UploadFile(SlotName);
+        //bSuccess = AttemptAuthentication(TEXT("user1"), TEXT("1234"));
+        bSuccess = UploadFile(SlotName);
     }
 
     return bSuccess;
@@ -80,7 +80,7 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     bool RequestSuccess = false;
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
-    //Url = "http://posttestserver.com/post.php";
+    Url = "http://posttestserver.com/post.php?dir=bloodelves88";
     FString ContentString;
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
@@ -109,11 +109,13 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
     bool RequestSuccess = false;
 
     FString Url = BaseUrl + SaveDataUrl; // "http://127.0.0.1:8000/save-data/";
+    Url = "http://posttestserver.com/post.php?dir=bloodelves88";
     FString ContentString;
 
     // Filepath of .sav file
     FString Filepath = FPaths::GameDir();
     Filepath += "Saved/SaveGames/" + filename + ".sav";
+    UE_LOG(LogTemp, Warning, TEXT("Filepath = %s"), *Filepath);
 
     // Load .sav file into array
     TArray<uint8> FileRawData;
@@ -122,22 +124,27 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
     // prepare json data
     FString JsonString;
     TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<TCHAR>::Create(&JsonString);
-
+    
     JsonWriter->WriteObjectStart();
     JsonWriter->WriteValue("saved_file", filename);
-    //JsonWriter->WriteValue("?", FBase64::Encode(FileRawData));
+    JsonWriter->WriteValue("file_object", FBase64::Encode(FileRawData));
     JsonWriter->WriteValue("is_autosaved", false);
-    //JsonWriter->WriteValue("game", "?");
-    //JsonWriter->WriteValue("user", "?");
+    JsonWriter->WriteValue("game", "wow");
+    JsonWriter->WriteValue("user", "1");
     JsonWriter->WriteObjectEnd();
     JsonWriter->Close();
 
     // the json request
     TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
+    //HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("multipart/form-data; boundary=--d79163f5f5y42f81edd3--"));
+    //HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
+    HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    //HttpRequest->SetHeader(TEXT("Content-Disposition"), TEXT("form-data; name=\"submitted\"; filename=\"SaveGame1.sav\""));
     HttpRequest->SetURL(Url);
-    HttpRequest->SetVerb("POST");
+    HttpRequest->SetVerb(TEXT("POST"));
     HttpRequest->SetContentAsString(JsonString);
+    //HttpRequest->SetContent(FileRawData);
     RequestSuccess = HttpRequest->ProcessRequest();
 
     return RequestSuccess;
