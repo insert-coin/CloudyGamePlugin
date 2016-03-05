@@ -29,6 +29,8 @@ public:
     bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID); // APlayerController const* PC);
 
     bool AttemptAuthentication(FString username, FString password);
+    bool UploadFile(FString filename);
+    void OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
     /**

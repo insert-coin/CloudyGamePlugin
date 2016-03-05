@@ -6,11 +6,14 @@
 #include "HttpRequestAdapter.h"
 #include "HttpModule.h"
 #include "IHttpResponse.h"
+#include "Base64.h"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
 static const int UE4_SAVEGAME_FILE_VERSION = 1;
 static const FString BaseUrl = "http://127.0.0.1:8000";
 static const FString AuthUrl = "/api-token-auth/";
+static const FString SaveDataUrl = "/save-data/";
+static FString Token;
 
 void CloudySaveManagerImpl::StartupModule()
 {
@@ -66,6 +69,7 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         //UE_LOG(LogTemp, Warning, TEXT("CID = %d"), ControllerID);
 
         bSuccess = AttemptAuthentication(TEXT("user1"), TEXT("1234"));
+        //bSuccess = UploadFile(SlotName);
     }
 
     return bSuccess;
@@ -99,6 +103,79 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     return RequestSuccess;
 }
 
+bool CloudySaveManagerImpl::UploadFile(FString filename)
+{
+    bool RequestSuccess = false;
+
+    FString Url = BaseUrl + SaveDataUrl; // "http://127.0.0.1:8000/save-data/";
+    FString ContentString;
+
+    // Filepath of .sav file
+    FString Filepath = FPaths::GameDir();
+    Filepath += "Saved/SaveGames/" + filename + ".sav";
+
+    // Load .sav file into array
+    TArray<uint8> FileRawData;
+    FFileHelper::LoadFileToArray(FileRawData, *Filepath);
+
+    // prepare json data
+    FString JsonString;
+    TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<TCHAR>::Create(&JsonString);
+
+    JsonWriter->WriteObjectStart();
+    JsonWriter->WriteValue("saved_file", filename);
+    //JsonWriter->WriteValue("?", FBase64::Encode(FileRawData));
+    JsonWriter->WriteValue("is_autosaved", false);
+    //JsonWriter->WriteValue("game", "?");
+    //JsonWriter->WriteValue("user", "?");
+    JsonWriter->WriteObjectEnd();
+    JsonWriter->Close();
+
+    // the json request
+    TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
+    HttpRequest->SetURL(Url);
+    HttpRequest->SetVerb("POST");
+    HttpRequest->SetContentAsString(JsonString);
+    RequestSuccess = HttpRequest->ProcessRequest();
+
+    return RequestSuccess;
+}
+
+void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+    FString MessageBody;
+
+    UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
+
+    if (!Response.IsValid())
+    {
+        MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
+        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
+
+        UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
+    }
+    else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+    {
+        //MessageBody = Response->GetContentAsString();
+        //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
+
+        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+        TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
+        FJsonSerializer::Deserialize(JsonReader, JsonObject);
+
+        //MessageBody = JsonObject->GetStringField("token");
+        
+        //UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *MessageBody);
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
+        MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
+    }
+
+}
+
 void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
     FString MessageBody;
@@ -121,9 +198,9 @@ void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, FHtt
         TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
         FJsonSerializer::Deserialize(JsonReader, JsonObject);
 
-        MessageBody = JsonObject->GetStringField("token");
-        
-        UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *MessageBody);
+        Token = JsonObject->GetStringField("token");
+
+        UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *Token);
     }
     else
     {
