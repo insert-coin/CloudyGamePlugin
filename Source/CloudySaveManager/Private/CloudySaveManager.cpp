@@ -80,6 +80,7 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     bool RequestSuccess = false;
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
+    //Url = "http://posttestserver.com/post.php";
     FString ContentString;
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
@@ -144,70 +145,82 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
 
 void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-    FString MessageBody;
-
-    UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
-
-    if (!Response.IsValid())
+    if (bWasSuccessful)
     {
-        MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
-        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
+        FString MessageBody;
 
-        UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
-    }
-    else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
-    {
-        //MessageBody = Response->GetContentAsString();
-        //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
+        UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
 
-        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-        TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
-        FJsonSerializer::Deserialize(JsonReader, JsonObject);
+        if (!Response.IsValid())
+        {
+            MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
+            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
 
-        //MessageBody = JsonObject->GetStringField("token");
-        
-        //UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *MessageBody);
+            UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
+        }
+        else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+        {
+            //MessageBody = Response->GetContentAsString();
+            //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
+
+            TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+            TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
+            FJsonSerializer::Deserialize(JsonReader, JsonObject);
+
+            //MessageBody = JsonObject->GetStringField("token");
+
+            //UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *MessageBody);
+        }
+        else
+        {
+            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
+            MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
+        }
     }
     else
     {
-        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
-        MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
+        UE_LOG(LogTemp, Warning, TEXT("Request failed! Is the server up?"));
     }
-
 }
 
 void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-    FString MessageBody;
-
-    UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
-
-    if (!Response.IsValid())
+    if (bWasSuccessful)
     {
-        MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
-        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
+        FString MessageBody;
 
-        UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
+        UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
+
+        if (!Response.IsValid())
+        {
+            MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
+            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
+
+            UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
+        }
+        else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+        {
+            //MessageBody = Response->GetContentAsString();
+            //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
+
+            TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+            TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
+            FJsonSerializer::Deserialize(JsonReader, JsonObject);
+
+            Token = JsonObject->GetStringField("token");
+
+            UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *Token);
+        }
+        else
+        {
+            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
+            MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
+        }
     }
-    else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+    else 
     {
-        //MessageBody = Response->GetContentAsString();
-        //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
-
-        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-        TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
-        FJsonSerializer::Deserialize(JsonReader, JsonObject);
-
-        Token = JsonObject->GetStringField("token");
-
-        UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *Token);
+        UE_LOG(LogTemp, Warning, TEXT("Request failed! Is the server up?"));
     }
-    else
-    {
-        GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
-        MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
-    }
-
 }
 
 USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex)
