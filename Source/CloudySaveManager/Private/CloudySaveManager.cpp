@@ -7,6 +7,9 @@
 #include "HttpModule.h"
 #include "IHttpResponse.h"
 #include "Base64.h"
+#include "AllowWindowsPlatformTypes.h"
+#include "ThirdParty/libcurl/include/Windows/curl/curl.h"
+#include "HideWindowsPlatformTypes.h"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
 static const int UE4_SAVEGAME_FILE_VERSION = 1;
@@ -108,44 +111,105 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
 {
     bool RequestSuccess = false;
 
-    FString Url = BaseUrl + SaveDataUrl; // "http://127.0.0.1:8000/save-data/";
-    Url = "http://posttestserver.com/post.php?dir=bloodelves88";
-    FString ContentString;
+    CURL *curl;
+    CURLcode res;
+    
+    struct curl_httppost *formpost = NULL;
+    struct curl_httppost *lastptr = NULL;
+    struct curl_slist *headerlist = NULL;
+    static const char buf[] = "Content-Type: multipart/form-data";
+    
+    curl_global_init(CURL_GLOBAL_ALL);
+    
+    /* Fill in the file upload field */
+    curl_formadd(&formpost, &lastptr,
+        CURLFORM_COPYNAME, "submitted",
+        CURLFORM_FILE, "SaveGame1.sav",
+        CURLFORM_END);
+    
+    /* Fill in the filename field */
+    curl_formadd(&formpost, &lastptr,
+        CURLFORM_COPYNAME, "filename",
+        CURLFORM_COPYCONTENTS, "SaveGame1.sav",
+        CURLFORM_END);
+    
+    
+    /* Fill in the submit field too, even if this is rarely needed */
+    curl_formadd(&formpost, &lastptr,
+        CURLFORM_COPYNAME, "submit",
+        CURLFORM_COPYCONTENTS, "send",
+        CURLFORM_END);
+    
+    curl = curl_easy_init();
+    /* initialize custom header list (stating that Expect: 100-continue is not
+    wanted */
+    headerlist = curl_slist_append(headerlist, buf);
+    if (curl) {
+        /* what URL that receives this POST */
+        curl_easy_setopt(curl, CURLOPT_URL, "http://posttestserver.com/post.php?dir=bloodelves88");
+        //if ((argc == 2) && (!strcmp(argv[1], "noexpectheader"))) 
+        //{
+        //    /* only disable 100-continue header if explicitly requested */
+        //    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+        //}
+        curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+    
+        /* Perform the request, res will get the return code */
+        res = curl_easy_perform(curl);
+        /* Check for errors */
+        if (res != CURLE_OK) 
+        {
+            //fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+            UE_LOG(LogTemp, Warning, TEXT("curl_easy_perform() failed: %s"), curl_easy_strerror(res));
+        }
 
-    // Filepath of .sav file
-    FString Filepath = FPaths::GameDir();
-    Filepath += "Saved/SaveGames/" + filename + ".sav";
-    UE_LOG(LogTemp, Warning, TEXT("Filepath = %s"), *Filepath);
+        /* always cleanup */
+        curl_easy_cleanup(curl);
+    
+        /* then cleanup the formpost chain */
+        curl_formfree(formpost);
+        /* free slist */
+        curl_slist_free_all(headerlist);
+    }
 
-    // Load .sav file into array
-    TArray<uint8> FileRawData;
-    FFileHelper::LoadFileToArray(FileRawData, *Filepath);
+    //FString Url = BaseUrl + SaveDataUrl; // "http://127.0.0.1:8000/save-data/";
+    //Url = "http://posttestserver.com/post.php?dir=bloodelves88";
+    //FString ContentString;
+    //
+    //// Filepath of .sav file
+    //FString Filepath = FPaths::GameDir();
+    //Filepath += "Saved/SaveGames/" + filename + ".sav";
+    //UE_LOG(LogTemp, Warning, TEXT("Filepath = %s"), *Filepath);
+    //
+    //// Load .sav file into array
+    //TArray<uint8> FileRawData;
+    //FFileHelper::LoadFileToArray(FileRawData, *Filepath);
 
     // prepare json data
-    FString JsonString;
-    TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<TCHAR>::Create(&JsonString);
-    
-    JsonWriter->WriteObjectStart();
-    JsonWriter->WriteValue("saved_file", filename);
-    JsonWriter->WriteValue("file_object", FBase64::Encode(FileRawData));
-    JsonWriter->WriteValue("is_autosaved", false);
-    JsonWriter->WriteValue("game", "wow");
-    JsonWriter->WriteValue("user", "1");
-    JsonWriter->WriteObjectEnd();
-    JsonWriter->Close();
+    //FString JsonString;
+    //TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<TCHAR>::Create(&JsonString);
+    //
+    //JsonWriter->WriteObjectStart();
+    //JsonWriter->WriteValue("saved_file", filename);
+    //JsonWriter->WriteValue("file_object", FBase64::Encode(FileRawData));
+    //JsonWriter->WriteValue("is_autosaved", false);
+    //JsonWriter->WriteValue("game", "wow");
+    //JsonWriter->WriteValue("user", "1");
+    //JsonWriter->WriteObjectEnd();
+    //JsonWriter->Close();
 
     // the json request
-    TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
-    //HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("multipart/form-data; boundary=--d79163f5f5y42f81edd3--"));
-    //HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
-    HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-    //HttpRequest->SetHeader(TEXT("Content-Disposition"), TEXT("form-data; name=\"submitted\"; filename=\"SaveGame1.sav\""));
-    HttpRequest->SetURL(Url);
-    HttpRequest->SetVerb(TEXT("POST"));
-    HttpRequest->SetContentAsString(JsonString);
+    //TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+    //HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
+    //HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("multipart/form-data; boundary=--9168505e7743579581edd3391da2--"));
+    ////HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
+    ////HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    ////HttpRequest->SetHeader(TEXT("Content-Disposition"), TEXT("form-data; name=\"submitted\"; filename=\"SaveGame1.sav\""));
+    //HttpRequest->SetURL(Url);
+    //HttpRequest->SetVerb(TEXT("POST"));
+    ////HttpRequest->SetContentAsString(JsonString);
     //HttpRequest->SetContent(FileRawData);
-    RequestSuccess = HttpRequest->ProcessRequest();
+    //RequestSuccess = HttpRequest->ProcessRequest();
 
     return RequestSuccess;
 }
