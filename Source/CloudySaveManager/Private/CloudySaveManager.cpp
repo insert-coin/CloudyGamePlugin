@@ -10,6 +10,7 @@
 #include "AllowWindowsPlatformTypes.h"
 #include "ThirdParty/libcurl/include/Windows/curl/curl.h"
 #include "HideWindowsPlatformTypes.h"
+#include "string"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
 static const int UE4_SAVEGAME_FILE_VERSION = 1;
@@ -18,12 +19,15 @@ static const FString AuthUrl = "/api-token-auth/";
 static const FString SaveDataUrl = "/save-data/";
 static FString Token;
 
+// Automatically starts and shuts down when UE4 is started/closed
 void CloudySaveManagerImpl::StartupModule()
 {
+    UE_LOG(LogTemp, Warning, TEXT("CloudySaveManager started"));
 }
  
 void CloudySaveManagerImpl::ShutdownModule()
 {
+    UE_LOG(LogTemp, Warning, TEXT("CloudySaveManager stopped"));
 }
  
 bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID)//APlayerController const* PC)
@@ -113,25 +117,30 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
 
     CURL *curl;
     CURLcode res;
-    
+
+    // Filepath of .sav file
+    FString Filepath = FPaths::GameDir();
+    Filepath += "Saved/SaveGames/" + filename + ".sav";
+    std::string filePath(TCHAR_TO_UTF8(*Filepath));
+
     struct curl_httppost *formpost = NULL;
     struct curl_httppost *lastptr = NULL;
     struct curl_slist *headerlist = NULL;
-    static const char buf[] = "Content-Type: multipart/form-data";
+    static const char buf[] = "Expect:";
     
     curl_global_init(CURL_GLOBAL_ALL);
     
     /* Fill in the file upload field */
     curl_formadd(&formpost, &lastptr,
         CURLFORM_COPYNAME, "submitted",
-        CURLFORM_FILE, "SaveGame1.sav",
+        CURLFORM_FILE, filePath.c_str(),
         CURLFORM_END);
     
     /* Fill in the filename field */
-    curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "filename",
-        CURLFORM_COPYCONTENTS, "SaveGame1.sav",
-        CURLFORM_END);
+    //curl_formadd(&formpost, &lastptr,
+    //    CURLFORM_COPYNAME, "submitted",
+    //    CURLFORM_COPYCONTENTS, "SaveGame1.sav",
+    //    CURLFORM_END);
     
     
     /* Fill in the submit field too, even if this is rarely needed */
@@ -160,9 +169,10 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
         if (res != CURLE_OK) 
         {
             //fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-            UE_LOG(LogTemp, Warning, TEXT("curl_easy_perform() failed: %s"), curl_easy_strerror(res));
+            // Always get error.
+            //UE_LOG(LogTemp, Warning, TEXT("curl_easy_perform() failed: %s"), curl_easy_strerror(res));
         }
-
+    
         /* always cleanup */
         curl_easy_cleanup(curl);
     
@@ -171,45 +181,6 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
         /* free slist */
         curl_slist_free_all(headerlist);
     }
-
-    //FString Url = BaseUrl + SaveDataUrl; // "http://127.0.0.1:8000/save-data/";
-    //Url = "http://posttestserver.com/post.php?dir=bloodelves88";
-    //FString ContentString;
-    //
-    //// Filepath of .sav file
-    //FString Filepath = FPaths::GameDir();
-    //Filepath += "Saved/SaveGames/" + filename + ".sav";
-    //UE_LOG(LogTemp, Warning, TEXT("Filepath = %s"), *Filepath);
-    //
-    //// Load .sav file into array
-    //TArray<uint8> FileRawData;
-    //FFileHelper::LoadFileToArray(FileRawData, *Filepath);
-
-    // prepare json data
-    //FString JsonString;
-    //TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<TCHAR>::Create(&JsonString);
-    //
-    //JsonWriter->WriteObjectStart();
-    //JsonWriter->WriteValue("saved_file", filename);
-    //JsonWriter->WriteValue("file_object", FBase64::Encode(FileRawData));
-    //JsonWriter->WriteValue("is_autosaved", false);
-    //JsonWriter->WriteValue("game", "wow");
-    //JsonWriter->WriteValue("user", "1");
-    //JsonWriter->WriteObjectEnd();
-    //JsonWriter->Close();
-
-    // the json request
-    //TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-    //HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudySaveManagerImpl::OnResponseComplete);
-    //HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("multipart/form-data; boundary=--9168505e7743579581edd3391da2--"));
-    ////HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
-    ////HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-    ////HttpRequest->SetHeader(TEXT("Content-Disposition"), TEXT("form-data; name=\"submitted\"; filename=\"SaveGame1.sav\""));
-    //HttpRequest->SetURL(Url);
-    //HttpRequest->SetVerb(TEXT("POST"));
-    ////HttpRequest->SetContentAsString(JsonString);
-    //HttpRequest->SetContent(FileRawData);
-    //RequestSuccess = HttpRequest->ProcessRequest();
 
     return RequestSuccess;
 }
