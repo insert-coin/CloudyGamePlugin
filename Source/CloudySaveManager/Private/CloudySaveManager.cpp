@@ -29,6 +29,12 @@ void CloudySaveManagerImpl::ShutdownModule()
 {
     UE_LOG(LogTemp, Warning, TEXT("CloudySaveManager stopped"));
 }
+
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
  
 bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID)//APlayerController const* PC)
 {
@@ -117,6 +123,8 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
 
     CURL *curl;
     CURLcode res;
+    std::string readBuffer;
+    readBuffer.clear();
 
     // Filepath of .sav file
     FString Filepath = FPaths::GameDir();
@@ -161,7 +169,12 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
         //    /* only disable 100-continue header if explicitly requested */
         //    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
         //}
+        /* What form to send */
         curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+
+        /* Set up string to write response into */
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
     
         /* Perform the request, res will get the return code */
         res = curl_easy_perform(curl);
@@ -169,7 +182,7 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
         if (res != CURLE_OK) 
         {
             //fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-            // Always get error.
+            // Always get error. Even if success.
             //UE_LOG(LogTemp, Warning, TEXT("curl_easy_perform() failed: %s"), curl_easy_strerror(res));
         }
     
@@ -180,6 +193,8 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
         curl_formfree(formpost);
         /* free slist */
         curl_slist_free_all(headerlist);
+
+        UE_LOG(LogTemp, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
     }
 
     return RequestSuccess;
