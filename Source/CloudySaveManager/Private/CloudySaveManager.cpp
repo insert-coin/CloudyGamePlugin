@@ -36,7 +36,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
  
-bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID)//APlayerController const* PC)
+bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID, bool IsAutosaved)//APlayerController const* PC)
 {
     FString theName = SlotName;
 
@@ -82,13 +82,13 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         //UE_LOG(LogTemp, Warning, TEXT("CID = %d"), ControllerID);
 
         //bSuccess = AttemptAuthentication(TEXT("user1"), TEXT("1234"));
-        bSuccess = UploadFile(SlotName);
+        bSuccess = UploadFile(SlotName, PCID, IsAutosaved);
     }
 
     return bSuccess;
 }
 
-bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString password)
+bool CloudySaveManagerImpl::AttemptAuthentication(FString Username, FString Password)
 {
     bool RequestSuccess = false;
 
@@ -97,8 +97,8 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     FString ContentString;
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-    JsonObject->SetStringField(TEXT("username"), username);
-    JsonObject->SetStringField(TEXT("password"), password);
+    JsonObject->SetStringField(TEXT("username"), Username);
+    JsonObject->SetStringField(TEXT("password"), Password);
 
     TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&ContentString);
     FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter);
@@ -117,7 +117,7 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString username, FString pass
     return RequestSuccess;
 }
 
-bool CloudySaveManagerImpl::UploadFile(FString filename)
+bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerId, bool IsAutosaved)
 {
     bool RequestSuccess = false;
 
@@ -125,11 +125,30 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
     CURLcode res;
     std::string readBuffer;
     readBuffer.clear();
+    std::string isAutosavedString;
 
     // Filepath of .sav file
     FString Filepath = FPaths::GameDir();
-    Filepath += "Saved/SaveGames/" + filename + ".sav";
+    Filepath += "Saved/SaveGames/" + Filename + ".sav";
     std::string filePath(TCHAR_TO_UTF8(*Filepath));
+
+    // Get game name
+    FString GameName = FApp::GetGameName();
+    std::string gameName(TCHAR_TO_UTF8(*GameName));
+
+    // Convert PlayerControllerId
+    FString playerControllerIdFString = FString::FromInt(PlayerControllerId);
+    std::string playerControllerId(TCHAR_TO_UTF8(*playerControllerIdFString));
+
+    // Convert IsAutosaved
+    if (IsAutosaved)
+    {
+        isAutosavedString = "true";
+    }
+    else
+    {
+        isAutosavedString = "false";
+    }
 
     struct curl_httppost *formpost = NULL;
     struct curl_httppost *lastptr = NULL;
@@ -140,20 +159,31 @@ bool CloudySaveManagerImpl::UploadFile(FString filename)
     
     /* Fill in the file upload field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "submitted",
+        CURLFORM_COPYNAME, "saveFile",
         CURLFORM_FILE, filePath.c_str(),
         CURLFORM_END);
     
-    /* Fill in the filename field */
-    //curl_formadd(&formpost, &lastptr,
-    //    CURLFORM_COPYNAME, "submitted",
-    //    CURLFORM_COPYCONTENTS, "SaveGame1.sav",
-    //    CURLFORM_END);
+    /* Fill in the player controller ID field */
+    curl_formadd(&formpost, &lastptr,
+        CURLFORM_COPYNAME, "PlayerControllerId",
+        CURLFORM_COPYCONTENTS, playerControllerId.c_str(),
+        CURLFORM_END);
+
+    /* Fill in the game name field */
+    curl_formadd(&formpost, &lastptr,
+        CURLFORM_COPYNAME, "GameName",
+        CURLFORM_COPYCONTENTS, gameName.c_str(),
+        CURLFORM_END);
     
-    
+    /* Fill in the autosaved field */
+    curl_formadd(&formpost, &lastptr,
+        CURLFORM_COPYNAME, "IsAutosaved",
+        CURLFORM_COPYCONTENTS, isAutosavedString.c_str(),
+        CURLFORM_END);
+
     /* Fill in the submit field too, even if this is rarely needed */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "submit",
+        CURLFORM_COPYNAME, "submitButton",
         CURLFORM_COPYCONTENTS, "send",
         CURLFORM_END);
     
@@ -280,7 +310,7 @@ void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, FHtt
     }
 }
 
-USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex)
+USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex, bool IsAutosaved)
 {
     // Load from CloudyWeb
     // ...

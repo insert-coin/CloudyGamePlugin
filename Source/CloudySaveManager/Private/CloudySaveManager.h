@@ -26,10 +26,10 @@ public:
     *	@return					Whether we successfully saved this information
     */
     UFUNCTION(BlueprintCallable, Category = "CloudyGame")
-    bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID); // APlayerController const* PC);
+        bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID, bool IsAutosaved); // APlayerController const* PC);
 
-    bool AttemptAuthentication(FString username, FString password);
-    bool UploadFile(FString filename);
+    bool AttemptAuthentication(FString Username, FString Password);
+    bool UploadFile(FString Filename, int32 PlayerControllerId, bool isAutosaved);
     void OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
@@ -40,5 +40,5 @@ public:
     *	@return SaveGameObject	Object containing loaded game state (NULL if load fails)
     */
     UFUNCTION(BlueprintCallable, Category = "CloudyGame")
-    USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex);
+        USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex, bool IsAutosaved);
 };
