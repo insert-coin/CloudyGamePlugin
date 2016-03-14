@@ -1,27 +1,20 @@
 ## Description
 
-Plugin to interface between CloudyPanel and Engine
+Plugin to interface between CloudyPanel and Engine. *NEW* CloudyPanel interface and streaming functions have been separated into different plugins.
 
 ## Setup
 
-In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyPanelPlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins. 
-To run split screen correctly, you need to modify Unreal Engine. Go to GameViewportClient.cpp and edit the function UGameViewportClient::LayoutPlayers(). Change SplitType to 4 player. Edit the code as follows:
-
-	Comment out this line: const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
-	Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;
-	
-Set the IP in the function CCloudyPanelPluginModule::SetUpPlayer before streaming.
+In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyPanelPlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
 
 ## Usage
-Split screen is now working. To join game, you can test using OtherFiles/sendTCP.py. Run the file and input 00000001 to add Player 1. More details in the file. Plugin streams to HTTP, so use VLC to catch the frames. The ports are:
 
-ControllerId 1: <your HTTP IP>:30000,
+This plugin currently supports join game and quit game. To test, send the following codes via TCP to 127.0.0.1:55556 :
 
-ControllerId 2: <your HTTP IP>:30001
+00000001 - join game with controller id 1
+00000002 - join game with controller id 2
+00010001 - quit game with controller id 1
+00010002 - quit game with controller id 2
 
-ControllerId 3: <your HTTP IP>:30002
+and so on. 
 
-ControllerId 4: <your HTTP IP>:30003
-
-
-Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
+OtherFiles/sendTCP.py has been included to assist testing.

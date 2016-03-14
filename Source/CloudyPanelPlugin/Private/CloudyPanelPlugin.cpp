@@ -19,13 +19,11 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 
 #define SERVER_NAME "Listener"
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
-#define BUFFER_SIZE 1024
 #define CONNECTION_THREAD_TIME 1 // in seconds
-#define FPS 30 // frames per second
+#define BUFFER_SIZE 1024
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
-#define PIXEL_SIZE 4
-#define BASE_PORT_NUM 30000
+
 
 void CCloudyPanelPluginModule::StartupModule()
 {
@@ -51,10 +49,6 @@ void CCloudyPanelPluginModule::StartupModule()
 	// initialise class variables
 	InputStr = "";
 	HasInputStrChanged = false;
-	isEngineRunning = false;
-
-	// timer to capture frames
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CaptureFrame), 1.0 / FPS);
 	
 }
 
@@ -81,7 +75,7 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 			int32 Command = FCString::Atoi(*CommandStr);
 			int32 ControllerId = FCString::Atoi(*ControllerIdStr);
 			
-			//UE_LOG(ModuleLog, Warning, TEXT("Command: %d ControllerId: %d"), Command, ControllerId);
+			UE_LOG(ModuleLog, Warning, TEXT("Command: %d ControllerId: %d"), Command, ControllerId);
 			
 			Success = ExecuteCommand(Command, ControllerId);
 
@@ -90,10 +84,12 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 		}
 
 		// Send response to client
-		if (Success) {
+		if (Success) 
+		{
 			SendToClient(TCPConnection, SUCCESS_MSG);
 		}
-		else {
+		else 
+		{
 			SendToClient(TCPConnection, FAILURE_MSG);
 		}
 
@@ -124,7 +120,8 @@ FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& Bin
 }
 
 
-bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint) {
+bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint)
+{
 
 	TArray<uint8> ReceivedData;
 	uint32 Size;
@@ -150,7 +147,8 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 }
 
 
-bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId) {
+bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
+{
 	bool Success = false;
 	if (GEngine)
 	{
@@ -160,8 +158,15 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 		{
 			FString Error;
 			GameInstance->CreateLocalPlayer(ControllerId, Error, true);
-			SetUpPlayer(ControllerId);
-			Success = true;
+
+			if (Error.Len() == 0) 
+			{
+				Success = true;
+			}
+			else 
+			{
+				Success = false;
+			}
 		}
 		else if (Command == QUIT_GAME)
 		{
@@ -169,133 +174,16 @@ bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 			if (ExistingPlayer != NULL)
 			{
 				GameInstance->RemoveLocalPlayer(ExistingPlayer);
-				NumberOfPlayers--;
-				int PipeIndex = PlayerFrameMapping[ControllerId];
-				fflush(VideoPipeList[PipeIndex]);
-				fclose(VideoPipeList[PipeIndex]);
-				PlayerFrameMapping.Remove(ControllerId);
-				VideoPipeList.RemoveAt(PipeIndex);
 				Success = true;
 			}
+			else 
+			{
+				Success = false;
+			}
 		}
-
 	}
 
 	return Success;
-}
-
-// call this for each player join
-void CCloudyPanelPluginModule::SetUpPlayer(int ControllerId) {
-
-	NumberOfPlayers++;
-
-	// encode and write players' frames to http stream
-	std::stringstream *StringStream = new std::stringstream();
-	// Need to replace the http ip with actual address when running Unreal Engine
-	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt rgba -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://192.168.1.1:" << BASE_PORT_NUM + ControllerId << " 2> out" << ControllerId << ".txt";
-
-	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
-
-	// add frame buffer for new player
-	TArray<FColor> TempFrameBuffer;
-	FrameBufferList.Add(TempFrameBuffer);
-
-	PlayerFrameMapping.Add(ControllerId);
-
-}
-
-void CCloudyPanelPluginModule::SetUpVideoCapture() {
-
-	// init frame dimension variables
-	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-	sizeX = ReadingViewport->GetSizeXY().X;
-	sizeY = ReadingViewport->GetSizeXY().Y;
-	halfSizeX = sizeX / 2;
-	halfSizeY = sizeY / 2;
-	UE_LOG(ModuleLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
-	
-	// set up split screen info
-	Screen1 = FIntRect(0, 0, halfSizeX, halfSizeY);
-	Screen2 = FIntRect(halfSizeX, 0, sizeX, halfSizeY);
-	Screen3 = FIntRect(0, halfSizeY, halfSizeX, sizeY);
-	Screen4 = FIntRect(halfSizeX, halfSizeY, sizeX, sizeY);
-	flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm, ECubeFace::CubeFace_NegX);
-
-}
-
-
-bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
-	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
-
-
-	// engine has been started
-	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
-		isEngineRunning = true;
-		NumberOfPlayers = 0;
-		SetUpVideoCapture();
-		SetUpPlayer(0);
-		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
-		
-	}
-
-	// engine has been stopped
-	else if (isEngineRunning && !(GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())) {
-		isEngineRunning = false;
-		UE_LOG(ModuleLog, Warning, TEXT("engine stopped"));
-		
-		for (int i = 0; i < NumberOfPlayers; i++) {
-			// flush and close video pipes
-			int PipeIndex = PlayerFrameMapping[i];
-			fflush(VideoPipeList[PipeIndex]);
-			fclose(VideoPipeList[PipeIndex]);
-		}
-	}
-
-	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
-	{	
-		// split screen for 4 players
-		Split4Player();
-		StreamFrameToClient();
-	}
-	return true;
-}
-
-
-void CCloudyPanelPluginModule::StreamFrameToClient() {
-
-	// use VideoPipe (class variable) to pass frames to encoder
-	uint32 *PixelBuffer;
-	FColor Pixel;
-	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
-
-	for (int i = 0; i < NumberOfPlayers; i++) {	
-		int FrameSize = FrameBufferList[i].Num();
-		
-		for (int j = 0; j < FrameSize; ++j) {
-			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
-			PixelBuffer[j] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
-		}
-
-		fwrite(PixelBuffer, halfSizeX * PIXEL_SIZE, halfSizeY, VideoPipeList[i]);
-	}
-	delete[]PixelBuffer;
-}
-
-
-// Split screen for 4 player
-void CCloudyPanelPluginModule::Split4Player() {
-
-	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-
-	if (NumberOfPlayers > 0)
-		ReadingViewport->ReadPixels(FrameBufferList[0], flags, Screen1);
-	if (NumberOfPlayers > 1)
-		ReadingViewport->ReadPixels(FrameBufferList[1], flags, Screen2);
-	if (NumberOfPlayers > 2)
-		ReadingViewport->ReadPixels(FrameBufferList[2], flags, Screen3);
-	if (NumberOfPlayers > 3)
-		ReadingViewport->ReadPixels(FrameBufferList[3], flags, Screen4);
-
 }
 
 

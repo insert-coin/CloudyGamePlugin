@@ -14,7 +14,6 @@ public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-
 	/** Input Handlers*/
 
 	/**
@@ -63,16 +62,10 @@ public:
 	*/
 	bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg);
 
+
 	//Rama's String From Binary Array
 	//This function requires #include <string>
 	FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray);
-
-	/** Video Capture*/
-	void CCloudyPanelPluginModule::SetUpVideoCapture();
-	void CCloudyPanelPluginModule::SetUpPlayer(int ControllerId);
-	void CCloudyPanelPluginModule::StreamFrameToClient();
-	// Only handle 4 player split screen for current solution
-	void CCloudyPanelPluginModule::Split4Player();
 
 
 	/** Class Variables */
@@ -81,16 +74,6 @@ public:
 	FSocket* TCPConnection;
 	FString InputStr;
 	bool HasInputStrChanged;
-
-	// For Video capture
-	int NumberOfPlayers;
-	TArray<FILE*> VideoPipeList;
-	TArray<TArray<FColor> > FrameBufferList;
-	bool isEngineRunning;
-	int sizeX, sizeY, halfSizeX, halfSizeY;
-	TArray<int> PlayerFrameMapping; // index is frame index, value is player index
-	FIntRect Screen1, Screen2, Screen3, Screen4;
-	FReadSurfaceDataFlags flags;
 
 	/**
 	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin
