@@ -76,7 +76,7 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 			int32 Command = FCString::Atoi(*CommandStr);
 			int32 ControllerId = FCString::Atoi(*ControllerIdStr);
 			
-			UE_LOG(ModuleLog, Warning, TEXT("Command: %d ControllerId: %d"), Command, ControllerId);
+			//UE_LOG(ModuleLog, Warning, TEXT("Command: %d ControllerId: %d"), Command, ControllerId);
 			
 			Success = ExecuteCommand(Command, ControllerId);
 
