@@ -8,10 +8,8 @@
 #include "CloudyPanelPlugin.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
 
 #define LOCTEXT_NAMESPACE "CCloudyPanelPluginModule"
 
@@ -37,13 +35,13 @@ void CCloudyPanelPluginModule::StartupModule()
 
 	//Create Socket
 	FIPv4Endpoint Endpoint(SERVER_ENDPOINT);
-	FSocket* ListenSocket = FTcpSocketBuilder(SERVER_NAME).AsReusable().BoundToEndpoint(Endpoint).Listening(8);
+	ListenSocket = FTcpSocketBuilder(SERVER_NAME).AsReusable().BoundToEndpoint(Endpoint).Listening(8);
 
 	//Set Buffer Size
 	int32 NewSize = 0;
 	ListenSocket->SetReceiveBufferSize(BUFFER_SIZE, NewSize);
 
-	FTcpListener* TcpListener = new FTcpListener(*ListenSocket, CONNECTION_THREAD_TIME);
+	TcpListener = new FTcpListener(*ListenSocket, CONNECTION_THREAD_TIME);
 	TcpListener->OnConnectionAccepted().BindRaw(this, &CCloudyPanelPluginModule::InputHandler);
 
 	// initialise class variables
@@ -57,6 +55,9 @@ void CCloudyPanelPluginModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.	
+	delete TcpListener;
+	ListenSocket -> Close();
+
 }
 
 
@@ -127,7 +128,9 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 	uint32 Size;
 
 	// wait for data to arrive
-	while (!(ConnectionSocket->HasPendingData(Size)));
+	while (!(ConnectionSocket->HasPendingData(Size))) {
+		Sleep(1000);
+	}
 
 	// handle data - change current command
 	ReceivedData.Init(FMath::Min(Size, 65507u));

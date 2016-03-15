@@ -70,8 +70,9 @@ public:
 
 	/** Class Variables */
 
-	// For TCP listener
+	FSocket* ListenSocket;
 	FSocket* TCPConnection;
+	FTcpListener* TcpListener;
 	FString InputStr;
 	bool HasInputStrChanged;
 
