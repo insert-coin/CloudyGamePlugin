@@ -37,7 +37,8 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
  
-bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID, bool IsAutosaved)//APlayerController const* PC)
+bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, 
+                                                  const int32 UserIndex, const int32 PCID, bool IsAutosaved)//APlayerController const* PC)
 {
     FString theName = SlotName;
 
@@ -75,14 +76,6 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         // Stuff that data into the save system with the desired file name
         SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
 
-        // Get player ID, upload to CloudyWeb
-        //ULocalPlayer::GetControllerId();
-        //ULocalPlayer * LP = Cast<ULocalPlayer>(PC->Player);
-        //int ControllerID = LP->GetControllerId();
-
-        //UE_LOG(LogTemp, Warning, TEXT("CID = %d"), ControllerID);
-
-        //bSuccess = AttemptAuthentication(TEXT("john"), TEXT("doe"));
         bSuccess = UploadFile(SlotName, PCID, IsAutosaved);
     }
 
@@ -94,7 +87,6 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString Username, FString Pass
     bool RequestSuccess = false;
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
-    //Url = "http://posttestserver.com/post.php?dir=bloodelves88";
     FString ContentString;
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
@@ -184,7 +176,6 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     curl = curl_easy_init();
     /* initialize custom header list (stating that Expect: 100-continue is not
     wanted */
-    //headerlist = curl_slist_append(headerlist, buf);
     headerlist = curl_slist_append(headerlist, AuthHeaderCString.c_str());
     if (curl) {
         /* what URL that receives this POST */
@@ -203,13 +194,6 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     
         /* Perform the request, res will get the return code */
         res = curl_easy_perform(curl);
-        /* Check for errors */
-        //if (res != CURLE_OK) 
-        //{
-            //fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-            // Always get error. Even if success.
-            //UE_LOG(LogTemp, Warning, TEXT("curl_easy_perform() failed: %s"), curl_easy_strerror(res));
-        //}
     
         /* always cleanup */
         curl_easy_cleanup(curl);
@@ -225,7 +209,8 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     return RequestSuccess;
 }
 
-void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, 
+                                                   FHttpResponsePtr Response, bool bWasSuccessful)
 {
     if (bWasSuccessful)
     {
@@ -242,49 +227,6 @@ void CloudySaveManagerImpl::OnResponseComplete(FHttpRequestPtr Request, FHttpRes
         }
         else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
         {
-            //MessageBody = Response->GetContentAsString();
-            //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
-
-            TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-            TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
-            FJsonSerializer::Deserialize(JsonReader, JsonObject);
-
-            //MessageBody = JsonObject->GetStringField("token");
-
-            //UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *MessageBody);
-        }
-        else
-        {
-            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
-            MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Request failed! Is the server up?"));
-    }
-}
-
-void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
-{
-    if (bWasSuccessful)
-    {
-        FString MessageBody;
-
-        UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
-
-        if (!Response.IsValid())
-        {
-            MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
-            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
-
-            UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
-        }
-        else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
-        {
-            //MessageBody = Response->GetContentAsString();
-            //GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request success!"));
-
             TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
             TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
             FJsonSerializer::Deserialize(JsonReader, JsonObject);
@@ -305,7 +247,8 @@ void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request, FHtt
     }
 }
 
-USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex, bool IsAutosaved)
+USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, 
+                                                          const int32 UserIndex, bool IsAutosaved)
 {
     // Load from CloudyWeb
     // ...
