@@ -171,27 +171,15 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     
     /* Fill in the player controller ID field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "user",
+        CURLFORM_COPYNAME, "controller",
         CURLFORM_COPYCONTENTS, playerControllerId.c_str(),
         CURLFORM_END);
     
     /* Fill in the game name field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "game",
+        CURLFORM_COPYNAME, "game_name",
         CURLFORM_COPYCONTENTS, gameName.c_str(),
         CURLFORM_END);
-    
-    /* Fill in the autosaved field */
-    curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "is_autosaved",
-        CURLFORM_COPYCONTENTS, isAutosavedString.c_str(),
-        CURLFORM_END);
-    
-    /* Fill in the submit field too, even if this is rarely needed */
-    //curl_formadd(&formpost, &lastptr,
-    //    CURLFORM_COPYNAME, "submitButton",
-    //    CURLFORM_COPYCONTENTS, "send",
-    //    CURLFORM_END);
     
     curl = curl_easy_init();
     /* initialize custom header list (stating that Expect: 100-continue is not
@@ -200,8 +188,8 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     headerlist = curl_slist_append(headerlist, AuthHeaderCString.c_str());
     if (curl) {
         /* what URL that receives this POST */
-        //curl_easy_setopt(curl, CURLOPT_URL, UrlCString.c_str());
-        curl_easy_setopt(curl, CURLOPT_URL, "http://posttestserver.com/post.php?dir=bloodelves88");
+        curl_easy_setopt(curl, CURLOPT_URL, UrlCString.c_str());
+        //curl_easy_setopt(curl, CURLOPT_URL, "http://posttestserver.com/post.php?dir=bloodelves88");
 
         /* only disable 100-continue header if explicitly requested */
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
@@ -216,12 +204,12 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
         /* Perform the request, res will get the return code */
         res = curl_easy_perform(curl);
         /* Check for errors */
-        if (res != CURLE_OK) 
-        {
+        //if (res != CURLE_OK) 
+        //{
             //fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
             // Always get error. Even if success.
             //UE_LOG(LogTemp, Warning, TEXT("curl_easy_perform() failed: %s"), curl_easy_strerror(res));
-        }
+        //}
     
         /* always cleanup */
         curl_easy_cleanup(curl);
