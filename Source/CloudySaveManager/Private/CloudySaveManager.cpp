@@ -23,6 +23,7 @@ static FString Token;
 void CloudySaveManagerImpl::StartupModule()
 {
     UE_LOG(LogTemp, Warning, TEXT("CloudySaveManager started"));
+    AttemptAuthentication(TEXT("joel"), TEXT("1234")); // Token variable will be populated with robot's token
 }
  
 void CloudySaveManagerImpl::ShutdownModule()
@@ -81,7 +82,7 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
 
         //UE_LOG(LogTemp, Warning, TEXT("CID = %d"), ControllerID);
 
-        //bSuccess = AttemptAuthentication(TEXT("user1"), TEXT("1234"));
+        //bSuccess = AttemptAuthentication(TEXT("john"), TEXT("doe"));
         bSuccess = UploadFile(SlotName, PCID, IsAutosaved);
     }
 
@@ -93,7 +94,7 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString Username, FString Pass
     bool RequestSuccess = false;
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
-    Url = "http://posttestserver.com/post.php?dir=bloodelves88";
+    //Url = "http://posttestserver.com/post.php?dir=bloodelves88";
     FString ContentString;
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
@@ -126,21 +127,24 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     std::string readBuffer;
     readBuffer.clear();
     std::string isAutosavedString;
-
+    
+    FString Url = BaseUrl + SaveDataUrl;
+    std::string UrlCString(TCHAR_TO_UTF8(*Url));
+    
     // Filepath of .sav file
     FString Filepath = FPaths::GameDir();
     Filepath += "Saved/SaveGames/" + Filename + ".sav";
     std::string filePath(TCHAR_TO_UTF8(*Filepath));
-
+    
     // Get game name
     FString GameName = FApp::GetGameName();
     std::string gameName(TCHAR_TO_UTF8(*GameName));
-
+    
     // Convert PlayerControllerId
     FString playerControllerIdFString = FString::FromInt(PlayerControllerId);
     std::string playerControllerId(TCHAR_TO_UTF8(*playerControllerIdFString));
-
-    // Convert IsAutosaved
+    
+    // Convert IsAutosaved to string
     if (IsAutosaved)
     {
         isAutosavedString = "true";
@@ -149,59 +153,62 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     {
         isAutosavedString = "false";
     }
-
+    
     struct curl_httppost *formpost = NULL;
     struct curl_httppost *lastptr = NULL;
     struct curl_slist *headerlist = NULL;
-    static const char buf[] = "Expect:";
+    //static const char buf[] = "Expect:";
+    FString AuthHeader = "Authorization: Token " + Token;
+    std::string AuthHeaderCString(TCHAR_TO_UTF8(*AuthHeader));
     
     curl_global_init(CURL_GLOBAL_ALL);
     
     /* Fill in the file upload field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "saveFile",
+        CURLFORM_COPYNAME, "saved_file",
         CURLFORM_FILE, filePath.c_str(),
         CURLFORM_END);
     
     /* Fill in the player controller ID field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "PlayerControllerId",
+        CURLFORM_COPYNAME, "user",
         CURLFORM_COPYCONTENTS, playerControllerId.c_str(),
         CURLFORM_END);
-
+    
     /* Fill in the game name field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "GameName",
+        CURLFORM_COPYNAME, "game",
         CURLFORM_COPYCONTENTS, gameName.c_str(),
         CURLFORM_END);
     
     /* Fill in the autosaved field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "IsAutosaved",
+        CURLFORM_COPYNAME, "is_autosaved",
         CURLFORM_COPYCONTENTS, isAutosavedString.c_str(),
         CURLFORM_END);
-
+    
     /* Fill in the submit field too, even if this is rarely needed */
-    curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "submitButton",
-        CURLFORM_COPYCONTENTS, "send",
-        CURLFORM_END);
+    //curl_formadd(&formpost, &lastptr,
+    //    CURLFORM_COPYNAME, "submitButton",
+    //    CURLFORM_COPYCONTENTS, "send",
+    //    CURLFORM_END);
     
     curl = curl_easy_init();
     /* initialize custom header list (stating that Expect: 100-continue is not
     wanted */
-    headerlist = curl_slist_append(headerlist, buf);
+    //headerlist = curl_slist_append(headerlist, buf);
+    headerlist = curl_slist_append(headerlist, AuthHeaderCString.c_str());
     if (curl) {
         /* what URL that receives this POST */
+        //curl_easy_setopt(curl, CURLOPT_URL, UrlCString.c_str());
         curl_easy_setopt(curl, CURLOPT_URL, "http://posttestserver.com/post.php?dir=bloodelves88");
-        //if ((argc == 2) && (!strcmp(argv[1], "noexpectheader"))) 
-        //{
-        //    /* only disable 100-continue header if explicitly requested */
-        //    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
-        //}
+
+        /* only disable 100-continue header if explicitly requested */
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+
         /* What form to send */
         curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
-
+    
         /* Set up string to write response into */
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -223,7 +230,7 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
         curl_formfree(formpost);
         /* free slist */
         curl_slist_free_all(headerlist);
-
+    
         UE_LOG(LogTemp, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
     }
 
