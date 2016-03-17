@@ -24,3 +24,38 @@ and so on.
 OtherFiles/sendTCP.py has been included to assist testing.
 
 Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
+
+# CloudySaveManager
+### Setup
+- In `YourProject/Source/YourProject/YourProject.Build.cs`:
+  - Ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. 
+  - E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
+
+- In your .cpp file where you want to use our custom `Cloudy_SaveGameToSlot` functions: 
+  - Ensure that `#include "ICloudySaveManager.h"` is included.
+
+## Usage
+`Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with two additional parameters: the player controller index, and whether it is an autosave.
+
+API:
+```cpp
+UFUNCTION(BlueprintCallable, Category="Game")
+virtual bool Cloudy_SaveGameToSlot
+(
+    USaveGame * SaveGameObject,
+    const FString & SlotName,
+    const int32 UserIndex,
+    const int32 PCID, // Player Controller ID of the player you are saving
+    bool IsAutosaved  // Is the game autosaved?
+)
+```
+
+Example: 
+```cpp
+#include "ICloudySaveManager.h"
+
+// Create a save game object
+UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+// Save the game
+ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0, false);
+```
