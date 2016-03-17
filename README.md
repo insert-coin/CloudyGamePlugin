@@ -1,3 +1,4 @@
+# CloudyPanelPlugin
 ## Description
 
 Plugin to interface between CloudyPanel and Engine. *NEW* CloudyPanel interface and streaming functions have been separated into different plugins.
@@ -21,3 +22,5 @@ This plugin currently supports join game and quit game. To test, send the follow
 and so on. 
 
 OtherFiles/sendTCP.py has been included to assist testing.
+
+Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.

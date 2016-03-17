@@ -5,17 +5,23 @@
 	"FriendlyName": "CloudyPanelPlugin",
 	"Description": "",
 	"Category": "Other",
-	"CreatedBy": "",
+	"CreatedBy": "Insert Coin",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",
 	"SupportURL": "",
-	"Modules": [
+	"Modules": 
+    [
 		{
 			"Name": "CloudyPanelPlugin",
 			"Type": "Developer",
 			"LoadingPhase": "Default"
-		}
+		},
+        {
+            "Name": "CloudySaveManager",
+			"Type": "Developer",
+			"LoadingPhase": "PreDefault"
+        }
 	],
 	"EnabledByDefault": false,
 	"CanContainContent": false,
