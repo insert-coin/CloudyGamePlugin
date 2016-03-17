@@ -1,3 +1,4 @@
+# CloudyPanelPlugin
 ## Description
 
 Plugin to interface between CloudyPanel and Engine
@@ -9,17 +10,55 @@ To run split screen correctly, you need to modify Unreal Engine. Go to GameViewp
 
 	Comment out this line: const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
 	Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;
+	
+Set the IP in the function CCloudyPanelPluginModule::SetUpPlayer before streaming.
 
 ## Usage
-Split screen is now working. You will need to join game in the official way with CloudyPanel. For convenience, I have included my testing file OtherFiles/sendTCP.py, which you can use to join game. Plugin streams to HTTP, so use VLC to catch the frames. The addresses are:
+Split screen is now working. To join game, you can test using OtherFiles/sendTCP.py. Run the file and input 00000001 to add Player 1. More details in the file. Plugin streams to HTTP, so use VLC to catch the frames. The ports are:
 
-ControllerId 1: http://localhost:30000,
+ControllerId 1: <your HTTP IP>:30000,
 
-ControllerId 2: http://localhost:30001
+ControllerId 2: <your HTTP IP>:30001
 
-ControllerId 3: http://localhost:30002
+ControllerId 3: <your HTTP IP>:30002
 
-ControllerId 4: http://localhost:30003
+ControllerId 4: <your HTTP IP>:30003
 
 
 Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
+
+
+# CloudySaveManager
+### Setup
+- In `YourProject/Source/YourProject/YourProject.Build.cs`:
+  - Ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. 
+  - E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
+
+- In your .cpp file where you want to use our custom `Cloudy_SaveGameToSlot` functions: 
+  - Ensure that `#include "ICloudySaveManager.h"` is included.
+
+## Usage
+`Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with two additional parameters: the player controller index, and whether it is an autosave.
+
+API:
+```cpp
+UFUNCTION(BlueprintCallable, Category="Game")
+virtual bool Cloudy_SaveGameToSlot
+(
+    USaveGame * SaveGameObject,
+    const FString & SlotName,
+    const int32 UserIndex,
+    const int32 PCID, // Player Controller ID of the player you are saving
+    bool IsAutosaved  // Is the game autosaved?
+)
+```
+
+Example: 
+```cpp
+#include "ICloudySaveManager.h"
+
+// Create a save game object
+UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+// Save the game
+ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0, false);
+```
