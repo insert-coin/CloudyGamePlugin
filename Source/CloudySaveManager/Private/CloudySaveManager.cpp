@@ -22,8 +22,7 @@ static FString Token;
 // Automatically starts and shuts down when UE4 is started/closed
 void CloudySaveManagerImpl::StartupModule()
 {
-    UE_LOG(LogTemp, Warning, TEXT("CloudySaveManager started"));
-    AttemptAuthentication(TEXT("joel"), TEXT("1234")); // Token variable will be populated with robot's token
+    UE_LOG(LogTemp, Warning, TEXT("CloudySaveManager started"));   
 }
  
 void CloudySaveManagerImpl::ShutdownModule()
@@ -38,7 +37,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 }
  
 bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, 
-                                                  const int32 UserIndex, const int32 PCID, bool IsAutosaved)//APlayerController const* PC)
+                                                  const int32 UserIndex, const int32 PCID)
 {
     FString theName = SlotName;
 
@@ -76,7 +75,9 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         // Stuff that data into the save system with the desired file name
         SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
 
-        bSuccess = UploadFile(SlotName, PCID, IsAutosaved);
+        // Token variable will be populated with robot's token
+        AttemptAuthentication(TEXT("joel"), TEXT("1234"));
+        bSuccess = true; 
     }
 
     return bSuccess;
@@ -110,15 +111,13 @@ bool CloudySaveManagerImpl::AttemptAuthentication(FString Username, FString Pass
     return RequestSuccess;
 }
 
-bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerId, bool IsAutosaved)
+bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerId)
 {
     bool RequestSuccess = false;
 
     CURL *curl;
     CURLcode res;
     std::string readBuffer;
-    readBuffer.clear();
-    std::string isAutosavedString;
     
     FString Url = BaseUrl + SaveDataUrl;
     std::string UrlCString(TCHAR_TO_UTF8(*Url));
@@ -135,16 +134,6 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     // Convert PlayerControllerId
     FString playerControllerIdFString = FString::FromInt(PlayerControllerId);
     std::string playerControllerId(TCHAR_TO_UTF8(*playerControllerIdFString));
-    
-    // Convert IsAutosaved to string
-    if (IsAutosaved)
-    {
-        isAutosavedString = "true";
-    }
-    else
-    {
-        isAutosavedString = "false";
-    }
     
     struct curl_httppost *formpost = NULL;
     struct curl_httppost *lastptr = NULL;
@@ -169,7 +158,7 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     
     /* Fill in the game name field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "game_name",
+        CURLFORM_COPYNAME, "game",
         CURLFORM_COPYCONTENTS, gameName.c_str(),
         CURLFORM_END);
     
@@ -180,7 +169,6 @@ bool CloudySaveManagerImpl::UploadFile(FString Filename, int32 PlayerControllerI
     if (curl) {
         /* what URL that receives this POST */
         curl_easy_setopt(curl, CURLOPT_URL, UrlCString.c_str());
-        //curl_easy_setopt(curl, CURLOPT_URL, "http://posttestserver.com/post.php?dir=bloodelves88");
 
         /* only disable 100-continue header if explicitly requested */
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
@@ -214,15 +202,10 @@ void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
 {
     if (bWasSuccessful)
     {
-        FString MessageBody;
-
         UE_LOG(LogTemp, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
 
         if (!Response.IsValid())
         {
-            MessageBody = "{\"success\":\"Error: Unable to process HTTP Request!\"}";
-            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request failed!"));
-
             UE_LOG(LogTemp, Warning, TEXT("Request failed!"));
         }
         else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
@@ -234,11 +217,7 @@ void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
             Token = JsonObject->GetStringField("token");
 
             UE_LOG(LogTemp, Warning, TEXT("Token = %s"), *Token);
-        }
-        else
-        {
-            GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, TEXT("Request error!"));
-            MessageBody = FString::Printf(TEXT("{\"success\":\"HTTP Error: %d\"}"), Response->GetResponseCode());
+            UploadFile("SaveGame1", 0);
         }
     }
     else 
@@ -248,7 +227,7 @@ void CloudySaveManagerImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
 }
 
 USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, 
-                                                          const int32 UserIndex, bool IsAutosaved)
+                                                          const int32 UserIndex)
 {
     // Load from CloudyWeb
     // ...

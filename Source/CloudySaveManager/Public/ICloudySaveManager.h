@@ -35,7 +35,7 @@ public:
 	}
  
     // REMEMBER TO PUT = 0 AT THE END
-    virtual bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID, bool IsAutosaved) = 0;// APlayerController const* PC) = 0;
+    virtual bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID) = 0;
 
-    virtual USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex, bool IsAutosaved) = 0;
+    virtual USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex) = 0;
 };
