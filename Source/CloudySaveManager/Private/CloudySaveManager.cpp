@@ -25,13 +25,15 @@ void CloudySaveManagerImpl::ShutdownModule()
 bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, 
                                                   const int32 UserIndex, const int32 PCID)
 {
-    FString theName = SlotName;
-
     bool bSuccess = false;
+
+    // Appends the player controller ID to the save file, 
+    // so that the split screen players do not overwrite 1 save file.
+    FString NewSlotName = SlotName + "-" + FString::FromInt(PCID);
 
     ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
     // If we have a system and an object to save and a save name...
-    if (SaveSystem && (SaveGameObject != NULL) && (SlotName.Len() > 0))
+    if (SaveSystem && (SaveGameObject != NULL) && (NewSlotName.Len() > 0))
     {
         TArray<uint8> ObjectBytes;
         FMemoryWriter MemoryWriter(ObjectBytes, true);
@@ -59,29 +61,34 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         SaveGameObject->Serialize(Ar);
 
         // Stuff that data into the save system with the desired file name
-        SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
+        SaveSystem->SaveGame(false, *NewSlotName, UserIndex, ObjectBytes);
 
-        bSuccess = ICloudyWebAPI::Get().UploadFile(SlotName, PCID);
+        bSuccess = ICloudyWebAPI::Get().UploadFile(NewSlotName, PCID);
     }
 
     return bSuccess;
 }
 
 USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, 
-                                                          const int32 UserIndex)
+                                                          const int32 UserIndex,
+                                                          const int32 PCID)
 {
     // Load from CloudyWeb, write it to default save location.
-    ICloudyWebAPI::Get().DownloadFile(SlotName);
+    ICloudyWebAPI::Get().DownloadFile(SlotName, PCID);
+
+    // Appends the player controller ID to the save file, 
+    // so that the split screen players do not overwrite 1 save file.
+    FString NewSlotName = SlotName + "-" + FString::FromInt(PCID);
     
     USaveGame* OutSaveGameObject = NULL;
     
     ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
     // If we have a save system and a valid name..
-    if (SaveSystem && (SlotName.Len() > 0))
+    if (SaveSystem && (NewSlotName.Len() > 0))
     {
         // Load raw data from slot
         TArray<uint8> ObjectBytes;
-        bool bSuccess = SaveSystem->LoadGame(false, *SlotName, UserIndex, ObjectBytes);
+        bool bSuccess = SaveSystem->LoadGame(false, *NewSlotName, UserIndex, ObjectBytes);
         if (bSuccess)
         {
             FMemoryReader MemoryReader(ObjectBytes, true);

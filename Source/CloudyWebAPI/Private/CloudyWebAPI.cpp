@@ -195,11 +195,12 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 * Downloads the save file from CloudyWeb.
 *
 * @param Filename               Filename of the save game file.
+* @param PlayerControllerId     Player controller ID of the player who requested the file.
 *
 * @return Returns true if the file download was successful. Else, returns false.
 *
 */
-bool CloudyWebAPIImpl::DownloadFile(FString Filename)
+bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 {
     CURL *curl;
     FILE *fp;
@@ -209,7 +210,8 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename)
 
     // Filepath of .sav file
     FString Filepath = FPaths::GameDir();
-    Filepath += "Saved/SaveGames/" + Filename + ".sav";
+    Filepath += "Saved/SaveGames/" + Filename + "-" + 
+                FString::FromInt(PlayerControllerId) + ".sav";
     std::string filePath(TCHAR_TO_UTF8(*Filepath));
 
     curl = curl_easy_init();

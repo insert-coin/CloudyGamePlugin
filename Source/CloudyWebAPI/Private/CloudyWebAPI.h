@@ -9,7 +9,7 @@ class CloudyWebAPIImpl : public ICloudyWebAPI
 public:
     // These public functions are accessible outside this plugin module:
     bool UploadFile(FString Filename, int32 PlayerControllerId);
-    bool DownloadFile(FString Filename);
+    bool DownloadFile(FString Filename, int32 PlayerControllerId);
 
 private:
     /** IModuleInterface implementation */

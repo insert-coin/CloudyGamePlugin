@@ -43,7 +43,8 @@ public:
     *
     *   @return                 Whether we successfully saved this information
     */
-    virtual bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID) = 0;
+    virtual bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, 
+                                       const int32 UserIndex, const int32 PCID) = 0;
 
     /**
     *   Download the save file from CloudyGame's cloud, then save the contents of the SaveGameObject to a slot.
@@ -52,5 +53,5 @@ public:
     *
     *   @return SaveGameObject      Object containing loaded game state (NULL if load fails)
     */
-    virtual USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex) = 0;
+    virtual USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex, const int32 PCID) = 0;
 };

@@ -22,7 +22,8 @@ public:
     *   @return                 Whether we successfully saved this information
     */
     UFUNCTION(BlueprintCallable, Category = "CloudyGame")
-        bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex, const int32 PCID);
+        bool Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, 
+                                   const int32 UserIndex, const int32 PCID);
 
     /**
     *   Download the save file from CloudyGame's cloud, then save the contents of the SaveGameObject to a slot.
@@ -32,5 +33,5 @@ public:
     *   @return SaveGameObject      Object containing loaded game state (NULL if load fails)
     */
     UFUNCTION(BlueprintCallable, Category = "CloudyGame")
-        USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex);
+        USaveGame* Cloudy_LoadGameFromSlot(const FString& SlotName, const int32 UserIndex, const int32 PCID);
 };

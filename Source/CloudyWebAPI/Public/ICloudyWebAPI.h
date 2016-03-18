@@ -48,9 +48,10 @@ public:
     * Downloads the save file from CloudyWeb. Used by CloudySaveManager
     *
     * @param Filename               Filename of the save game file.
+    * @param PlayerControllerId     Player controller ID of the player who requested the file.
     *
     * @return Returns true if the file download was successful. Else, returns false.
     *
     */
-    virtual bool DownloadFile(FString Filename) = 0;
+    virtual bool DownloadFile(FString Filename, int32 PlayerControllerId) = 0;
 };
