@@ -26,7 +26,13 @@ OtherFiles/sendTCP.py has been included to assist testing.
 Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
 
 # CloudySaveManager
-### Setup
+## Description
+
+Module to provide customized save game and load game API. This API will allow the game developer to use our custom save/load game functions to upload the player's save game file to our cloud.
+
+## Setup
+- Assume that the CloudyPanelPlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
+
 - In `YourProject/Source/YourProject/YourProject.Build.cs`:
   - Ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. 
   - E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
@@ -35,7 +41,7 @@ Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are p
   - Ensure that `#include "ICloudySaveManager.h"` is included.
 
 ## Usage
-`Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with two additional parameters: the player controller index, and whether it is an autosave.
+`Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with an additional parameter: the player controller index.
 
 API:
 ```cpp
@@ -46,7 +52,6 @@ virtual bool Cloudy_SaveGameToSlot
     const FString & SlotName,
     const int32 UserIndex,
     const int32 PCID, // Player Controller ID of the player you are saving
-    bool IsAutosaved  // Is the game autosaved?
 )
 ```
 
@@ -57,5 +62,23 @@ Example:
 // Create a save game object
 UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
 // Save the game
-ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0, false);
+ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0);
+```
+
+# CloudyWebAPI
+## Description
+
+Module to provide network API for communication to the CloudyWeb server.
+
+## Setup
+- Assume that the CloudyPanelPlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
+
+- In the .cpp file where you want to use any public functions in this module: 
+  - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
+  
+## Usage
+Assume that we want to use the `UploadFile` function from this module. We call the function this way:
+
+```cpp
+ICloudyWebAPI::Get().UploadFile(Filename, PlayerControllerId);
 ```
