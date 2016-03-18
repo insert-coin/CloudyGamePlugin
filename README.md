@@ -82,3 +82,8 @@ Assume that we want to use the `UploadFile` function from this module. We call t
 ```cpp
 ICloudyWebAPI::Get().UploadFile(Filename, PlayerControllerId);
 ```
+
+### Adding more API
+- `CloudyWebAPI.cpp` contains all the function logic. Do your work here.
+- `CloudyWebAPI.h` contains all the function declaration. Declare all your functions here.
+- `ICloudyWebAPI.h` contains public function declarations. Only declare functions here if you want to use the functions outside the CloudyWebAPI module.
