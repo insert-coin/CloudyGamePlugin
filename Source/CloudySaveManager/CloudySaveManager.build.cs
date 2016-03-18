@@ -8,7 +8,7 @@ public class CloudySaveManager : ModuleRules
         PrivateIncludePaths.AddRange(
             new string[] {
                 "CloudySaveManager/Private",
-			}
+            }
         );
         PublicIncludePaths.AddRange(
             new string[] { 
@@ -18,10 +18,10 @@ public class CloudySaveManager : ModuleRules
 
         PublicDependencyModuleNames.AddRange(
             new string[] {
-				"Core",
-				"CoreUObject",
+                "Core",
+                "CoreUObject",
                 "Engine",
-			}
+            }
         );
         PrivateDependencyModuleNames.AddRange(
             new string[] { 

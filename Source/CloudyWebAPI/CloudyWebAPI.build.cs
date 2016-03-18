@@ -8,7 +8,7 @@ public class CloudyWebAPI : ModuleRules
         PrivateIncludePaths.AddRange(
             new string[] {
                 "CloudyWebAPI/Private",
-			}
+            }
         );
         PublicIncludePaths.AddRange(
             new string[] { 
@@ -18,12 +18,12 @@ public class CloudyWebAPI : ModuleRules
 
         PublicDependencyModuleNames.AddRange(
             new string[] {
-				"Core",
-				"CoreUObject",
+                "Core",
+                "CoreUObject",
                 "Engine",
-				"Json",
+                "Json",
                 "Http",
-			}
+            }
         );
         PrivateDependencyModuleNames.AddRange(new string[] { "JsonUtilities"});
 
