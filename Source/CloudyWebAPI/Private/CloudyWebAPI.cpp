@@ -17,6 +17,7 @@ static const FString BaseUrl = "http://127.0.0.1:8000";
 static const FString AuthUrl = "/api-token-auth/";
 static const FString SaveDataUrl = "/save-data/";
 static FString Token;
+static FString SaveFileURL;
 
 // Automatically starts when UE4 is started.
 // Populates the Token variable with the robot user's token.
@@ -179,10 +180,66 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
         curl_slist_free_all(headerlist);
     
         UE_LOG(CloudyWebAPILog, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
-
+        ReadAndStoreSaveFileURL(readBuffer.c_str());
     }
 
     return RequestSuccess;
+}
+
+size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+    size_t written = fwrite(ptr, size, nmemb, stream);
+    return written;
+}
+
+/**
+* Downloads the save file from CloudyWeb.
+*
+* @param Filename               Filename of the save game file.
+*
+* @return Returns true if the file download was successful. Else, returns false.
+*
+*/
+bool CloudyWebAPIImpl::DownloadFile(FString Filename)
+{
+    CURL *curl;
+    FILE *fp;
+    CURLcode res;
+
+    std::string SaveFileURLCString(TCHAR_TO_UTF8(*SaveFileURL));
+
+    // Filepath of .sav file
+    FString Filepath = FPaths::GameDir();
+    Filepath += "Saved/SaveGames/" + Filename + ".sav";
+    std::string filePath(TCHAR_TO_UTF8(*Filepath));
+
+    curl = curl_easy_init();
+    if (curl) {
+        fp = fopen(filePath.c_str(), "wb");
+        curl_easy_setopt(curl, CURLOPT_URL, SaveFileURLCString.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+        fclose(fp);
+    }
+    return true;
+}
+
+/**
+* This function parses the Json response after uploading the save file to obtain the 
+* URL of the save file.
+*
+* @param JsonString      Json string to parse
+*
+*/
+void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString)
+{
+    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+    TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonString);
+    FJsonSerializer::Deserialize(JsonReader, JsonObject);
+
+    SaveFileURL = JsonObject->GetStringField("saved_file");
+    UE_LOG(CloudyWebAPILog, Warning, TEXT("File URL = %s"), *SaveFileURL);
 }
 
 /**
@@ -217,7 +274,7 @@ void CloudyWebAPIImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
     }
     else 
     {
-        UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Is the server up?"));
+        UE_LOG(CloudyWebAPILog, Error, TEXT("Request failed! Is the server up?"));
     }
 }
 

@@ -9,6 +9,7 @@ class CloudyWebAPIImpl : public ICloudyWebAPI
 public:
     // These public functions are accessible outside this plugin module:
     bool UploadFile(FString Filename, int32 PlayerControllerId);
+    bool DownloadFile(FString Filename);
 
 private:
     /** IModuleInterface implementation */
@@ -17,4 +18,5 @@ private:
 
     bool AttemptAuthentication(FString Username, FString Password);
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+    void ReadAndStoreSaveFileURL(FString JsonString);
 };

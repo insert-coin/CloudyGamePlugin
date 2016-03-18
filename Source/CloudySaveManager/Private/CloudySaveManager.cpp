@@ -70,8 +70,8 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
 USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotName, 
                                                           const int32 UserIndex)
 {
-    // Load from CloudyWeb
-    // ...
+    // Load from CloudyWeb, write it to default save location.
+    ICloudyWebAPI::Get().DownloadFile(SlotName);
     
     USaveGame* OutSaveGameObject = NULL;
     

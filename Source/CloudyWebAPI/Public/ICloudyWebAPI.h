@@ -42,4 +42,15 @@ public:
     * @return Returns true if the file upload was successful. Else, returns false.
     */
     virtual bool UploadFile(FString Filename, int32 PlayerControllerId) = 0;
+
+
+    /**
+    * Downloads the save file from CloudyWeb. Used by CloudySaveManager
+    *
+    * @param Filename               Filename of the save game file.
+    *
+    * @return Returns true if the file download was successful. Else, returns false.
+    *
+    */
+    virtual bool DownloadFile(FString Filename) = 0;
 };
