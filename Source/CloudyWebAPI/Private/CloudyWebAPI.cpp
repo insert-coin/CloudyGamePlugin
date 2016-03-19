@@ -11,16 +11,20 @@
 #include "HideWindowsPlatformTypes.h"
 #include "string"
 
+// Credentials of the robot user
+#define USERNAME "joel"
+#define PASSWORD "1234"
+
 DEFINE_LOG_CATEGORY(CloudyWebAPILog);
 
 static const FString BaseUrl = "http://127.0.0.1:8000";
 static const FString AuthUrl = "/api-token-auth/";
 static const FString SaveDataUrl = "/save-data/";
-static FString Token;
-static FString SaveFileURL0;
-static FString SaveFileURL1;
-static FString SaveFileURL2;
-static FString SaveFileURL3;
+static FString Token;           // Robot's authentication token
+static FString SaveFileURL0;    // URL for player controller 0
+static FString SaveFileURL1;    // URL for player controller 1
+static FString SaveFileURL2;    // URL for player controller 2
+static FString SaveFileURL3;    // URL for player controller 3
 
 // Automatically starts when UE4 is started.
 // Populates the Token variable with the robot user's token.
@@ -28,7 +32,7 @@ void CloudyWebAPIImpl::StartupModule()
 {
     UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI started"));
     // Token variable will be populated with the robot user's token.
-    AttemptAuthentication(TEXT("joel"), TEXT("1234"));
+    AttemptAuthentication(USERNAME, PASSWORD);
 }
 
 // Automatically starts when UE4 is closed
@@ -47,6 +51,17 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
+}
+
+
+/**
+* Writes data into file. Callback function for the libcurl function 
+* "CURLOPT_WRITEFUNCTION". Used for writing into files.
+*
+*/
+size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+    size_t written = fwrite(ptr, size, nmemb, stream);
+    return written;
 }
 
 /**
@@ -189,10 +204,6 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
     return RequestSuccess;
 }
 
-size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
-    size_t written = fwrite(ptr, size, nmemb, stream);
-    return written;
-}
 
 /**
 * Downloads the save file from CloudyWeb.
@@ -208,6 +219,7 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     CURL *curl;
     FILE *fp;
     CURLcode res;
+    errno_t err;
     std::string SaveFileURLCString;
 
     if (PlayerControllerId == 0)
@@ -235,13 +247,19 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 
     curl = curl_easy_init();
     if (curl) {
-        fp = fopen(filePath.c_str(), "wb");
-        curl_easy_setopt(curl, CURLOPT_URL, SaveFileURLCString.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-        res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-        fclose(fp);
+        if ((err = fopen_s(&fp, filePath.c_str(), "wb")) == 0)
+        {
+            curl_easy_setopt(curl, CURLOPT_URL, SaveFileURLCString.c_str());
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            fclose(fp);
+        }
+        else
+        {
+            UE_LOG(CloudyWebAPILog, Error, TEXT("Could not create save file!"));
+        }
     }
     return true;
 }
@@ -250,7 +268,8 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 * This function parses the Json response after uploading the save file to obtain the 
 * URL of the save file.
 *
-* @param JsonString      Json string to parse
+* @param JsonString              Json string to parse
+* @param PlayerControllerId      Player controller ID of the player who is saving the file
 *
 */
 void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId)
