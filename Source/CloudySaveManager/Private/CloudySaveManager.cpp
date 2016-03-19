@@ -144,6 +144,8 @@ USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotNam
                 FObjectAndNameAsStringProxyArchive Ar(MemoryReader, true);
                 OutSaveGameObject->Serialize(Ar);
             }
+
+            UE_LOG(CloudySaveManagerLog, Warning, TEXT("Game loaded successfully."));
         }
     }
     

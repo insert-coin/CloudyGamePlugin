@@ -17,7 +17,10 @@ static const FString BaseUrl = "http://127.0.0.1:8000";
 static const FString AuthUrl = "/api-token-auth/";
 static const FString SaveDataUrl = "/save-data/";
 static FString Token;
-static FString SaveFileURL;
+static FString SaveFileURL0;
+static FString SaveFileURL1;
+static FString SaveFileURL2;
+static FString SaveFileURL3;
 
 // Automatically starts when UE4 is started.
 // Populates the Token variable with the robot user's token.
@@ -180,7 +183,7 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
         curl_slist_free_all(headerlist);
     
         UE_LOG(CloudyWebAPILog, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
-        ReadAndStoreSaveFileURL(readBuffer.c_str());
+        ReadAndStoreSaveFileURL(readBuffer.c_str(), PlayerControllerId);
     }
 
     return RequestSuccess;
@@ -205,8 +208,24 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     CURL *curl;
     FILE *fp;
     CURLcode res;
+    std::string SaveFileURLCString;
 
-    std::string SaveFileURLCString(TCHAR_TO_UTF8(*SaveFileURL));
+    if (PlayerControllerId == 0)
+    {
+        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL0);
+    }
+    else if (PlayerControllerId == 1)
+    {
+        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL1);
+    }
+    else if (PlayerControllerId == 2)
+    {
+        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL2);
+    }
+    else if (PlayerControllerId == 3)
+    {
+        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL3);
+    }
 
     // Filepath of .sav file
     FString Filepath = FPaths::GameDir();
@@ -234,14 +253,28 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 * @param JsonString      Json string to parse
 *
 */
-void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString)
+void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId)
 {
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
     TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonString);
     FJsonSerializer::Deserialize(JsonReader, JsonObject);
 
-    SaveFileURL = JsonObject->GetStringField("saved_file");
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("File URL = %s"), *SaveFileURL);
+    if (PlayerControllerId == 0)
+    {
+        SaveFileURL0 = JsonObject->GetStringField("saved_file");
+    }
+    else if (PlayerControllerId == 1)
+    {
+        SaveFileURL1 = JsonObject->GetStringField("saved_file");
+    }
+    else if (PlayerControllerId == 2)
+    {
+        SaveFileURL2 = JsonObject->GetStringField("saved_file");
+    }
+    else if (PlayerControllerId == 3)
+    {
+        SaveFileURL3 = JsonObject->GetStringField("saved_file");
+    }
 }
 
 /**

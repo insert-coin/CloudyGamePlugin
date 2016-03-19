@@ -18,5 +18,5 @@ private:
 
     bool AttemptAuthentication(FString Username, FString Password);
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-    void ReadAndStoreSaveFileURL(FString JsonString);
+    void ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId);
 };
