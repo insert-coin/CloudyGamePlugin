@@ -54,4 +54,24 @@ public:
     *
     */
     virtual bool DownloadFile(FString Filename, int32 PlayerControllerId) = 0;
+
+	/**
+	* Makes a request to CloudyWeb server
+	*
+	* @param ResourceUrl The url of the resource to get, for example /game-session/
+	* @param RequestMethod The type of HTTP request, for example GET or DELETE
+	* @param Response The response from the server
+	*
+	* @return Whether the request was successful or not
+	*
+	*/
+	virtual bool MakeRequest(FString ResourceUrl, FString RequestMethod) = 0;
+
+	/**
+	* Accessor for HTTP response. Caller may have to wait for valid response.
+	*
+	* @return The response from the HTTP request from MakeRequest
+	*
+	*/
+	virtual FString GetResponse() = 0;
 };

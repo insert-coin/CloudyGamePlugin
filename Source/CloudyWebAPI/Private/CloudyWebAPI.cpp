@@ -25,6 +25,7 @@ static FString SaveFileURL0;    // URL for player controller 0
 static FString SaveFileURL1;    // URL for player controller 1
 static FString SaveFileURL2;    // URL for player controller 2
 static FString SaveFileURL3;    // URL for player controller 3
+FString HttpResponse;
 
 // Automatically starts when UE4 is started.
 // Populates the Token variable with the robot user's token.
@@ -332,5 +333,75 @@ void CloudyWebAPIImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
     }
 }
 
+
+/**
+* Makes a request to CloudyWeb server
+*
+* @param ResourceUrl The url of the resource to get, for example /game-session/
+* @param RequestMethod The type of HTTP request, for example GET or DELETE
+* @param Response The response from the server
+*
+* @return Whether the request was successful or not
+*
+*/
+bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
+{
+	UE_LOG(CloudyWebAPILog, Warning, TEXT("Getting resource: %s"), *ResourceUrl);
+	FString Url = BaseUrl + ResourceUrl;
+	HttpResponse = "";
+
+	// use token to get resource from CloudyWeb
+	FString AuthHeader = "Token " + Token;
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	HttpRequest->SetHeader(TEXT("Authorization"), AuthHeader);
+	HttpRequest->SetURL(Url);
+	HttpRequest->SetVerb(RequestMethod);
+	HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebAPIImpl::OnGetResponseComplete);
+
+	return HttpRequest->ProcessRequest();
+
+}
+
+/**
+* Accessor for HTTP response. Caller may have to wait for valid response.
+*
+* @return The response from the HTTP request from MakeRequest
+*
+*/
+FString CloudyWebAPIImpl::GetResponse()
+{
+	return HttpResponse;
+}
+
+/**
+* Callback function for MakeRequest. Sets the global response variable.
+*
+* @param Request
+* @param Response           Contains the data of the response, including the response code.
+* @param bWasSuccessful     Contains true if the request was successful. Else it contains false.
+*
+*/
+void CloudyWebAPIImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+
+	if (bWasSuccessful)
+	{
+		UE_LOG(CloudyWebAPILog, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
+
+		if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+		{
+			HttpResponse = Response->GetContentAsString();
+		}
+		else
+		{
+			UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Response invalid"));
+		}
+	}
+	else
+	{
+		UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Is the server up?"));
+	}
+
+}
  
 IMPLEMENT_MODULE(CloudyWebAPIImpl, CloudyWebAPI)
