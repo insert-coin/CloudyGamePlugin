@@ -1,7 +1,7 @@
 # CloudyPanelPlugin
 ## Description
 
-Plugin to interface between CloudyPanel and Engine. *NEW* CloudyPanel interface and streaming functions have been separated into different plugins.
+Module to interface between CloudyPanel and Engine, for joining and quitting game.
 
 ## Setup
 
@@ -23,7 +23,33 @@ and so on.
 
 OtherFiles/sendTCP.py has been included to assist testing.
 
-Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
+# CloudyStream
+** Description
+
+Module for streaming
+
+## Setup
+
+Put ffmpeg executable into your Unreal Engine\Engine\Binaries\Win64 folder.
+
+Modify Unreal Engine. Go to UGameViewportClient.cpp and edit the function UGameViewportClient::LayoutPlayers(). Change SplitType to 4 player. Edit the code as follows:
+
+Comment out this line: const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
+
+Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;
+
+## Usage
+
+Open streams (in vlc/ThinClient etc media players) using the following addresses:
+
+Player 0: http://<your public IP>:30000
+
+Player 1: http://<your public IP>:30001
+
+Player 2: http://<your public IP>:30002
+
+Player 3: http://<your public IP>:30003
+
 
 # CloudySaveManager
 ## Description

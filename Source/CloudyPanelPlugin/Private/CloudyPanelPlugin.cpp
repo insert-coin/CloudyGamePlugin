@@ -35,7 +35,7 @@ void CCloudyPanelPluginModule::StartupModule()
 
 	// Set up to receive commands from CloudyWeb/CloudyPanel
 	// Start timer function to check on client connection
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::Tick), CONNECTION_THREAD_TIME);
+	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CheckConnection), CONNECTION_THREAD_TIME);
 
 	// start the server (listener)
 
@@ -69,7 +69,7 @@ void CCloudyPanelPluginModule::ShutdownModule()
 }
 
 
-bool CCloudyPanelPluginModule::Tick(float DeltaTime)
+bool CCloudyPanelPluginModule::CheckConnection(float DeltaTime)
 {
 
 	bool Success = false;
@@ -103,9 +103,10 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 			SendToClient(TCPConnection, FAILURE_MSG);
 		}
 
+		return false; // response received. stop timer
 	}
 
-	return true;
+	return true; // continue timer to check for reply
 }
 
 
@@ -201,7 +202,7 @@ bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId)
 	if (ExistingPlayer != NULL)
 	{
 
-		// get correct game session to delete
+		// Future implementation of Quit Game - delete session from server
 
 		// delete appropriate game session
 		/*
@@ -210,7 +211,7 @@ bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId)
 		UE_LOG(ModuleLog, Warning, TEXT("Game Session string: %s"), *GameSession);
 		Success = ICloudyWebAPI::Get().MakeRequest(Int32String, DELETE_REQUEST);
 		*/
-		UE_LOG(ModuleLog, Warning, TEXT("Game name: %s"), GAME_NAME);
+		//UE_LOG(ModuleLog, Warning, TEXT("Game name: %s"), GAME_NAME);
 
 		// check for successful removal from server before removing
 		// if (Success) {

@@ -43,11 +43,12 @@ public:
 	/** Timer */
 
 	/**
-	* Timer to poll for input from client, and call appropriate input handler
+	* Timer to poll for input from client, and call appropriate input handler.
+	* Stops when input is received.
 	*
 	* @param DeltaTime The time between polls
 	*/
-	bool CCloudyPanelPluginModule::Tick(float DeltaTime);
+	bool CCloudyPanelPluginModule::CheckConnection(float DeltaTime);
 
 
 	/** Helper Methods*/
