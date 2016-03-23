@@ -1,17 +1,16 @@
 // Some copyright should be here...
 /*=============================================================================
-	CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
+CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
 =============================================================================*/
 //TCP implementation from : https ://wiki.unrealengine.com/TCP_Socket_Listener,_Receive_Binary_Data_From_an_IP/Port_Into_UE4,_(Full_Code_Sample)
 
 #include "CloudyPanelPluginPrivatePCH.h"
 #include "CloudyPanelPlugin.h"
+#include "../../CloudyStream/Public/CloudyStream.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
 
 #define LOCTEXT_NAMESPACE "CCloudyPanelPluginModule"
 
@@ -19,13 +18,16 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 
 #define SERVER_NAME "Listener"
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
+#define CONNECTION_THREAD_TIME 10 // in seconds
 #define BUFFER_SIZE 1024
-#define CONNECTION_THREAD_TIME 1 // in seconds
-#define FPS 30 // frames per second
+
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
-#define PIXEL_SIZE 4
-#define BASE_PORT_NUM 30000
+
+#define DELETE_URL "/game-session/"
+#define DELETE_REQUEST "DELETE"
+#define GAME_NAME GInternalGameName
+
 
 void CCloudyPanelPluginModule::StartupModule()
 {
@@ -39,23 +41,21 @@ void CCloudyPanelPluginModule::StartupModule()
 
 	//Create Socket
 	FIPv4Endpoint Endpoint(SERVER_ENDPOINT);
-	FSocket* ListenSocket = FTcpSocketBuilder(SERVER_NAME).AsReusable().BoundToEndpoint(Endpoint).Listening(8);
+	ListenSocket = FTcpSocketBuilder(SERVER_NAME).AsReusable().BoundToEndpoint(Endpoint).Listening(8);
 
 	//Set Buffer Size
 	int32 NewSize = 0;
 	ListenSocket->SetReceiveBufferSize(BUFFER_SIZE, NewSize);
 
-	FTcpListener* TcpListener = new FTcpListener(*ListenSocket, CONNECTION_THREAD_TIME);
+	TcpListener = new FTcpListener(*ListenSocket, CONNECTION_THREAD_TIME);
 	TcpListener->OnConnectionAccepted().BindRaw(this, &CCloudyPanelPluginModule::InputHandler);
 
 	// initialise class variables
 	InputStr = "";
 	HasInputStrChanged = false;
-	isEngineRunning = false;
 
-	// timer to capture frames
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CCloudyPanelPluginModule::CaptureFrame), 1.0 / FPS);
-	
+	UE_LOG(ModuleLog, Warning, TEXT("CPP started"));
+
 }
 
 
@@ -63,11 +63,15 @@ void CCloudyPanelPluginModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.	
+	delete TcpListener;
+	ListenSocket->Close();
+
 }
 
 
 bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 {
+
 	bool Success = false;
 
 	if (HasInputStrChanged) {
@@ -80,9 +84,9 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 			FString ControllerIdStr = InputStr.Mid(4, 4);
 			int32 Command = FCString::Atoi(*CommandStr);
 			int32 ControllerId = FCString::Atoi(*ControllerIdStr);
-			
+
 			//UE_LOG(ModuleLog, Warning, TEXT("Command: %d ControllerId: %d"), Command, ControllerId);
-			
+
 			Success = ExecuteCommand(Command, ControllerId);
 
 			InputStr = "";
@@ -90,10 +94,12 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 		}
 
 		// Send response to client
-		if (Success) {
+		if (Success)
+		{
 			SendToClient(TCPConnection, SUCCESS_MSG);
 		}
-		else {
+		else
+		{
 			SendToClient(TCPConnection, FAILURE_MSG);
 		}
 
@@ -124,7 +130,8 @@ FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& Bin
 }
 
 
-bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint) {
+bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint)
+{
 
 	TArray<uint8> ReceivedData;
 	uint32 Size;
@@ -150,155 +157,73 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 }
 
 
-bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId) {
-	bool Success = false;
-	if (GEngine)
-	{
-		UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
-
-		if (Command == JOIN_GAME)
-		{
-			FString Error;
-			GameInstance->CreateLocalPlayer(ControllerId, Error, true);
-			SetUpPlayer(ControllerId);
-			Success = true;
-		}
-		else if (Command == QUIT_GAME)
-		{
-			ULocalPlayer* const ExistingPlayer = GameInstance->FindLocalPlayerFromControllerId(ControllerId);
-			if (ExistingPlayer != NULL)
-			{
-				GameInstance->RemoveLocalPlayer(ExistingPlayer);
-				NumberOfPlayers--;
-				int PipeIndex = PlayerFrameMapping[ControllerId];
-				fflush(VideoPipeList[PipeIndex]);
-				fclose(VideoPipeList[PipeIndex]);
-				PlayerFrameMapping.Remove(ControllerId);
-				VideoPipeList.RemoveAt(PipeIndex);
-				Success = true;
-			}
-		}
-
-	}
-
-	return Success;
-}
-
-// call this for each player join
-void CCloudyPanelPluginModule::SetUpPlayer(int ControllerId) {
-
-	NumberOfPlayers++;
-
-	// encode and write players' frames to http stream
-	std::stringstream *StringStream = new std::stringstream();
-	// Need to replace the http ip with actual address when running Unreal Engine
-	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt rgba -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://192.168.1.1:" << BASE_PORT_NUM + ControllerId << " 2> out" << ControllerId << ".txt";
-
-	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
-
-	// add frame buffer for new player
-	TArray<FColor> TempFrameBuffer;
-	FrameBufferList.Add(TempFrameBuffer);
-
-	PlayerFrameMapping.Add(ControllerId);
-
-}
-
-void CCloudyPanelPluginModule::SetUpVideoCapture() {
-
-	// init frame dimension variables
-	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-	sizeX = ReadingViewport->GetSizeXY().X;
-	sizeY = ReadingViewport->GetSizeXY().Y;
-	halfSizeX = sizeX / 2;
-	halfSizeY = sizeY / 2;
-	UE_LOG(ModuleLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
-	
-	// set up split screen info
-	Screen1 = FIntRect(0, 0, halfSizeX, halfSizeY);
-	Screen2 = FIntRect(halfSizeX, 0, sizeX, halfSizeY);
-	Screen3 = FIntRect(0, halfSizeY, halfSizeX, sizeY);
-	Screen4 = FIntRect(halfSizeX, halfSizeY, sizeX, sizeY);
-	flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm, ECubeFace::CubeFace_NegX);
-
-}
-
-
-bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime) {
-	//UE_LOG(ModuleLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
-
-
-	// engine has been started
-	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
-		isEngineRunning = true;
-		NumberOfPlayers = 0;
-		SetUpVideoCapture();
-		SetUpPlayer(0);
-		UE_LOG(ModuleLog, Warning, TEXT("engine started"));
-		
-	}
-
-	// engine has been stopped
-	else if (isEngineRunning && !(GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())) {
-		isEngineRunning = false;
-		UE_LOG(ModuleLog, Warning, TEXT("engine stopped"));
-		
-		for (int i = 0; i < NumberOfPlayers; i++) {
-			// flush and close video pipes
-			int PipeIndex = PlayerFrameMapping[i];
-			fflush(VideoPipeList[PipeIndex]);
-			fclose(VideoPipeList[PipeIndex]);
-		}
-	}
-
+bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
+{
 	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
-	{	
-		// split screen for 4 players
-		Split4Player();
-		StreamFrameToClient();
-	}
-	return true;
-}
-
-
-void CCloudyPanelPluginModule::StreamFrameToClient() {
-
-	// use VideoPipe (class variable) to pass frames to encoder
-	uint32 *PixelBuffer;
-	FColor Pixel;
-	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
-
-	for (int i = 0; i < NumberOfPlayers; i++) {	
-		int FrameSize = FrameBufferList[i].Num();
-		
-		for (int j = 0; j < FrameSize; ++j) {
-			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
-			PixelBuffer[j] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
+	{
+		switch (Command) {
+			case JOIN_GAME:
+				return AddPlayer(ControllerId);
+			case QUIT_GAME:
+				return RemovePlayer(ControllerId);
+			default:
+				return false;
 		}
-
-		fwrite(PixelBuffer, halfSizeX * PIXEL_SIZE, halfSizeY, VideoPipeList[i]);
+		return false;
 	}
-	delete[]PixelBuffer;
+	
+	UE_LOG(ModuleLog, Warning, TEXT("Game not started"));
+	return false;
 }
 
 
-// Split screen for 4 player
-void CCloudyPanelPluginModule::Split4Player() {
+bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId)
+{
+	UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
+	FString Error;
+	GameInstance->CreateLocalPlayer(ControllerId, Error, true);
 
-	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+	if (Error.Len() == 0) // success. no error message
+	{
+		CloudyStreamImpl::Get().StartPlayerStream(ControllerId);
+		return true;
+	}
 
-	if (NumberOfPlayers > 0)
-		ReadingViewport->ReadPixels(FrameBufferList[0], flags, Screen1);
-	if (NumberOfPlayers > 1)
-		ReadingViewport->ReadPixels(FrameBufferList[1], flags, Screen2);
-	if (NumberOfPlayers > 2)
-		ReadingViewport->ReadPixels(FrameBufferList[2], flags, Screen3);
-	if (NumberOfPlayers > 3)
-		ReadingViewport->ReadPixels(FrameBufferList[3], flags, Screen4);
+	return false;
 
+}
+
+
+bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId)
+{
+	UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
+	ULocalPlayer* const ExistingPlayer = GameInstance->FindLocalPlayerFromControllerId(ControllerId);
+	if (ExistingPlayer != NULL)
+	{
+
+		// get correct game session to delete
+
+		// delete appropriate game session
+		/*
+		FString Int32String = FString::FromInt(ControllerId);
+		FString GameSession = DELETE_URL + Int32String + "/";
+		UE_LOG(ModuleLog, Warning, TEXT("Game Session string: %s"), *GameSession);
+		Success = ICloudyWebAPI::Get().MakeRequest(Int32String, DELETE_REQUEST);
+		*/
+		UE_LOG(ModuleLog, Warning, TEXT("Game name: %s"), GAME_NAME);
+
+		// check for successful removal from server before removing
+		// if (Success) {
+	
+		CloudyStreamImpl::Get().StopPlayerStream(ControllerId);
+		return GameInstance->RemoveLocalPlayer(ExistingPlayer);
+		
+	}
+
+	return false;
 }
 
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(CCloudyPanelPluginModule, CloudyPanelPlugin)

@@ -1,35 +1,38 @@
 # CloudyPanelPlugin
 ## Description
 
-Plugin to interface between CloudyPanel and Engine
+Plugin to interface between CloudyPanel and Engine. *NEW* CloudyPanel interface and streaming functions have been separated into different plugins.
 
 ## Setup
 
-In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyPanelPlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins. 
-To run split screen correctly, you need to modify Unreal Engine. Go to GameViewportClient.cpp and edit the function UGameViewportClient::LayoutPlayers(). Change SplitType to 4 player. Edit the code as follows:
-
-	Comment out this line: const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
-	Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;
-	
-Set the IP in the function CCloudyPanelPluginModule::SetUpPlayer before streaming.
+In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyPanelPlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
 
 ## Usage
-Split screen is now working. To join game, you can test using OtherFiles/sendTCP.py. Run the file and input 00000001 to add Player 1. More details in the file. Plugin streams to HTTP, so use VLC to catch the frames. The ports are:
 
-ControllerId 1: <your HTTP IP>:30000,
+This plugin currently supports join game and quit game. To test, send the following codes via TCP to 127.0.0.1:55556 :
 
-ControllerId 2: <your HTTP IP>:30001
+00000001 - join game with controller id 1
 
-ControllerId 3: <your HTTP IP>:30002
+00000002 - join game with controller id 2
 
-ControllerId 4: <your HTTP IP>:30003
+00010001 - quit game with controller id 1
 
+00010002 - quit game with controller id 2
+
+and so on. 
+
+OtherFiles/sendTCP.py has been included to assist testing.
 
 Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are probably generated in your Unreal Engine\Engine\Binaries\Win64 folder.
 
-
 # CloudySaveManager
-### Setup
+## Description
+
+Module to provide customized save game and load game API. This API will allow the game developer to use our custom save/load game functions to upload the player's save game file to our cloud.
+
+## Setup
+- Assume that the CloudyPanelPlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
+
 - In `YourProject/Source/YourProject/YourProject.Build.cs`:
   - Ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. 
   - E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
@@ -38,7 +41,7 @@ Note, all files from ffmpeg (output video, sdp file, log file out.txt etc) are p
   - Ensure that `#include "ICloudySaveManager.h"` is included.
 
 ## Usage
-`Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with two additional parameters: the player controller index, and whether it is an autosave.
+`Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with an additional parameter: the player controller index.
 
 API:
 ```cpp
@@ -49,7 +52,6 @@ virtual bool Cloudy_SaveGameToSlot
     const FString & SlotName,
     const int32 UserIndex,
     const int32 PCID, // Player Controller ID of the player you are saving
-    bool IsAutosaved  // Is the game autosaved?
 )
 ```
 
@@ -60,5 +62,28 @@ Example:
 // Create a save game object
 UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
 // Save the game
-ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0, false);
+ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0);
 ```
+
+# CloudyWebAPI
+## Description
+
+Module to provide network API for communication to the CloudyWeb server.
+
+## Setup
+- Assume that the CloudyPanelPlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
+
+- In the .cpp file where you want to use any public functions in this module: 
+  - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
+  
+## Usage
+Assume that we want to use the `UploadFile` function from this module. We call the function this way:
+
+```cpp
+ICloudyWebAPI::Get().UploadFile(Filename, PlayerControllerId);
+```
+
+### Adding more API
+- `CloudyWebAPI.cpp` contains all the function logic. Do your work here.
+- `CloudyWebAPI.h` contains all the function declaration. Declare all your functions here.
+- `ICloudyWebAPI.h` contains public function declarations. Only declare functions here if you want to use the functions outside the CloudyWebAPI module.
