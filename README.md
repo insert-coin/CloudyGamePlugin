@@ -24,7 +24,7 @@ and so on.
 OtherFiles/sendTCP.py has been included to assist testing.
 
 # CloudyStream
-** Description
+## Description
 
 Module for streaming
 
