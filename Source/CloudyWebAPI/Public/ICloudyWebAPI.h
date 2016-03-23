@@ -60,7 +60,6 @@ public:
 	*
 	* @param ResourceUrl The url of the resource to get, for example /game-session/
 	* @param RequestMethod The type of HTTP request, for example GET or DELETE
-	* @param Response The response from the server
 	*
 	* @return Whether the request was successful or not
 	*

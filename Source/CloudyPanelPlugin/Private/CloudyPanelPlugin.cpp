@@ -24,7 +24,7 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
 
-#define DELETE_URL "/game-session/"
+#define GAME_SESSION_URL "/game-session/"
 #define DELETE_REQUEST "DELETE"
 #define GAME_NAME GInternalGameName
 
@@ -54,10 +54,9 @@ void CCloudyPanelPluginModule::StartupModule()
 	InputStr = "";
 	HasInputStrChanged = false;
 
-	UE_LOG(ModuleLog, Warning, TEXT("CPP started"));
+	UE_LOG(ModuleLog, Warning, TEXT("CloudyPanel Plugin started"));
 
 }
-
 
 void CCloudyPanelPluginModule::ShutdownModule()
 {

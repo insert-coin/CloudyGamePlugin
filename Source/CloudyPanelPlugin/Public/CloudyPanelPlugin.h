@@ -76,12 +76,11 @@ public:
 	*/
 	bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId);
 
-	
 
 	//Rama's String From Binary Array
 	//This function requires #include <string>
 	FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray);
-
+	
 
 	/** Class Variables */
 
@@ -90,6 +89,7 @@ public:
 	FTcpListener* TcpListener;
 	FString InputStr;
 	bool HasInputStrChanged;
+	
 
 	/**
 	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin

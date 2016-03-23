@@ -22,6 +22,20 @@ public:
 	virtual void ShutdownModule() override;
 
 	/**
+	* Sends a request(s) for this game's IP from CloudyWeb server until
+	* request is successful
+	*/
+	bool CloudyStreamImpl::RequestGameIP(float DeltaTime);
+
+	/**
+	* Timer to get this game's IP from CloudyWeb server from the response. 
+	* The global variable GameIP is set after this function
+	*
+	* @return Whether to stop the timer or not
+	*/
+	bool CloudyStreamImpl::GetGameIP(float DeltaTime);
+
+	/**
 	* One-time set up for variables used during streaming, including frame 
 	* dimensions and split-screen information
 	*/
@@ -94,6 +108,7 @@ public:
 
 	/** Class variables **/
 	int NumberOfPlayers;
+	FString GameIP;
 	TArray<FILE*> VideoPipeList;
 	TArray<TArray<FColor> > FrameBufferList;
 	bool isEngineRunning;
