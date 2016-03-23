@@ -4,6 +4,7 @@
 
 #include "ModuleManager.h"
 
+
 DECLARE_LOG_CATEGORY_EXTERN(ModuleLog, Log, All)
 
 class CCloudyPanelPluginModule : public IModuleInterface
@@ -23,10 +24,10 @@ public:
 	* @param ControllerId The Controller Id on which command should be executed
 	*/
 	/*=============================================================================
-		Command Format
-		Incoming String: [01234567]
-		[0123] - Command (enumerated)
-		[4567] - Controller ID
+	Command Format
+	Incoming String: [01234567]
+	[0123] - Command (enumerated)
+	[4567] - Controller ID
 	=============================================================================*/
 	bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId);
 
@@ -48,9 +49,6 @@ public:
 	*/
 	bool CCloudyPanelPluginModule::Tick(float DeltaTime);
 
-	// Timer for capturing frames
-	bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime);
-
 
 	/** Helper Methods*/
 
@@ -62,6 +60,22 @@ public:
 	*/
 	bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg);
 
+	/**
+	* Method to add player to the game by Controller ID.
+	*
+	* @param ControllerId The Controller ID of the player to be added
+	*/
+	bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId);
+
+	/**
+	* Method to remove player by Controller ID. Sends a delete game session
+	* request to CloudyWeb server
+	*
+	* @param ControllerId The Controller ID of the player to be deleted
+	*/
+	bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId);
+
+	
 
 	//Rama's String From Binary Array
 	//This function requires #include <string>
@@ -83,5 +97,6 @@ public:
 		JOIN_GAME,
 		QUIT_GAME
 	};
+
 
 };

@@ -1,11 +1,12 @@
 // Some copyright should be here...
 /*=============================================================================
-	CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
+CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
 =============================================================================*/
 //TCP implementation from : https ://wiki.unrealengine.com/TCP_Socket_Listener,_Receive_Binary_Data_From_an_IP/Port_Into_UE4,_(Full_Code_Sample)
 
 #include "CloudyPanelPluginPrivatePCH.h"
 #include "CloudyPanelPlugin.h"
+#include "../../CloudyStream/Public/CloudyStream.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,10 +18,15 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 
 #define SERVER_NAME "Listener"
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
-#define CONNECTION_THREAD_TIME 1 // in seconds
+#define CONNECTION_THREAD_TIME 10 // in seconds
 #define BUFFER_SIZE 1024
+
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
+
+#define DELETE_URL "/game-session/"
+#define DELETE_REQUEST "DELETE"
+#define GAME_NAME GInternalGameName
 
 
 void CCloudyPanelPluginModule::StartupModule()
@@ -47,7 +53,9 @@ void CCloudyPanelPluginModule::StartupModule()
 	// initialise class variables
 	InputStr = "";
 	HasInputStrChanged = false;
-	
+
+	UE_LOG(ModuleLog, Warning, TEXT("CPP started"));
+
 }
 
 
@@ -56,13 +64,14 @@ void CCloudyPanelPluginModule::ShutdownModule()
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.	
 	delete TcpListener;
-	ListenSocket -> Close();
+	ListenSocket->Close();
 
 }
 
 
 bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 {
+
 	bool Success = false;
 
 	if (HasInputStrChanged) {
@@ -75,9 +84,9 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 			FString ControllerIdStr = InputStr.Mid(4, 4);
 			int32 Command = FCString::Atoi(*CommandStr);
 			int32 ControllerId = FCString::Atoi(*ControllerIdStr);
-			
+
 			//UE_LOG(ModuleLog, Warning, TEXT("Command: %d ControllerId: %d"), Command, ControllerId);
-			
+
 			Success = ExecuteCommand(Command, ControllerId);
 
 			InputStr = "";
@@ -85,11 +94,11 @@ bool CCloudyPanelPluginModule::Tick(float DeltaTime)
 		}
 
 		// Send response to client
-		if (Success) 
+		if (Success)
 		{
 			SendToClient(TCPConnection, SUCCESS_MSG);
 		}
-		else 
+		else
 		{
 			SendToClient(TCPConnection, FAILURE_MSG);
 		}
@@ -128,9 +137,7 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 	uint32 Size;
 
 	// wait for data to arrive
-	while (!(ConnectionSocket->HasPendingData(Size))) {
-		Sleep(1000);
-	}
+	while (!(ConnectionSocket->HasPendingData(Size)));
 
 	// handle data - change current command
 	ReceivedData.Init(FMath::Min(Size, 65507u));
@@ -152,44 +159,71 @@ bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIP
 
 bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId)
 {
-	bool Success = false;
-	if (GEngine)
+	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
 	{
-		UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
-
-		if (Command == JOIN_GAME)
-		{
-			FString Error;
-			GameInstance->CreateLocalPlayer(ControllerId, Error, true);
-
-			if (Error.Len() == 0) 
-			{
-				Success = true;
-			}
-			else 
-			{
-				Success = false;
-			}
+		switch (Command) {
+			case JOIN_GAME:
+				return AddPlayer(ControllerId);
+			case QUIT_GAME:
+				return RemovePlayer(ControllerId);
+			default:
+				return false;
 		}
-		else if (Command == QUIT_GAME)
-		{
-			ULocalPlayer* const ExistingPlayer = GameInstance->FindLocalPlayerFromControllerId(ControllerId);
-			if (ExistingPlayer != NULL)
-			{
-				GameInstance->RemoveLocalPlayer(ExistingPlayer);
-				Success = true;
-			}
-			else 
-			{
-				Success = false;
-			}
-		}
+		return false;
+	}
+	
+	UE_LOG(ModuleLog, Warning, TEXT("Game not started"));
+	return false;
+}
+
+
+bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId)
+{
+	UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
+	FString Error;
+	GameInstance->CreateLocalPlayer(ControllerId, Error, true);
+
+	if (Error.Len() == 0) // success. no error message
+	{
+		CloudyStreamImpl::Get().StartPlayerStream(ControllerId);
+		return true;
 	}
 
-	return Success;
+	return false;
+
+}
+
+
+bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId)
+{
+	UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
+	ULocalPlayer* const ExistingPlayer = GameInstance->FindLocalPlayerFromControllerId(ControllerId);
+	if (ExistingPlayer != NULL)
+	{
+
+		// get correct game session to delete
+
+		// delete appropriate game session
+		/*
+		FString Int32String = FString::FromInt(ControllerId);
+		FString GameSession = DELETE_URL + Int32String + "/";
+		UE_LOG(ModuleLog, Warning, TEXT("Game Session string: %s"), *GameSession);
+		Success = ICloudyWebAPI::Get().MakeRequest(Int32String, DELETE_REQUEST);
+		*/
+		UE_LOG(ModuleLog, Warning, TEXT("Game name: %s"), GAME_NAME);
+
+		// check for successful removal from server before removing
+		// if (Success) {
+	
+		CloudyStreamImpl::Get().StopPlayerStream(ControllerId);
+		return GameInstance->RemoveLocalPlayer(ExistingPlayer);
+		
+	}
+
+	return false;
 }
 
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(CCloudyPanelPluginModule, CloudyPanelPlugin)
