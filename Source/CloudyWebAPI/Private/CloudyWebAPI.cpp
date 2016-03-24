@@ -30,8 +30,8 @@ void CloudyWebAPIImpl::StartupModule()
 {
     UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI started"));
 
-	// BaseUrl will be updated with the correct URL
-	BaseUrl = get_env_var("CLOUDYWEB_URL").c_str();
+    // BaseUrl will be updated with the correct URL
+    BaseUrl = get_env_var("CLOUDYWEB_URL").c_str();
     // Token variable will be populated with the robot user's token.
     AttemptAuthentication();
 }
@@ -74,13 +74,13 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 *
 */
 std::string get_env_var(std::string const & key) {
-	char * val;
-	val = getenv(key.c_str());
-	std::string retval = "";
-	if (val != NULL) {
-		retval = val;
-	}
-	return retval;
+    char * val;
+    val = getenv(key.c_str());
+    std::string retval = "";
+    if (val != NULL) {
+        retval = val;
+    }
+    return retval;
 }
 
 /**
@@ -94,12 +94,12 @@ bool CloudyWebAPIImpl::AttemptAuthentication()
 {
     bool RequestSuccess = false;
 
-	FString Username;
-	FString Password;
-	FString value = get_env_var("ROBOT_USER").c_str();
-	value.Split(";", &Username, &Password);
-	UE_LOG(CloudyWebAPILog, Warning, TEXT("RobotUserName = %s, RobotPassword = %s"), 
-		   *Username.Trim(), *Password.Trim());
+    FString Username;
+    FString Password;
+    FString value = get_env_var("ROBOT_USER").c_str();
+    value.Split(";", &Username, &Password);
+    UE_LOG(CloudyWebAPILog, Warning, TEXT("RobotUserName = %s, RobotPassword = %s"), 
+           *Username.Trim(), *Password.Trim());
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
     FString ContentString;
@@ -366,19 +366,19 @@ void CloudyWebAPIImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
 */
 bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
 {
-	UE_LOG(CloudyWebAPILog, Warning, TEXT("Getting resource: %s"), *ResourceUrl);
-	FString Url = BaseUrl + ResourceUrl;
-	HttpResponse = "";
-
-	// use token to get resource from CloudyWeb
-	FString AuthHeader = "Token " + Token;
-	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-	HttpRequest->SetHeader(TEXT("Authorization"), AuthHeader);
-	HttpRequest->SetURL(Url);
-	HttpRequest->SetVerb(RequestMethod);
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebAPIImpl::OnGetResponseComplete);
-
-	return HttpRequest->ProcessRequest();
+    UE_LOG(CloudyWebAPILog, Warning, TEXT("Getting resource: %s"), *ResourceUrl);
+    FString Url = BaseUrl + ResourceUrl;
+    HttpResponse = "";
+    
+    // use token to get resource from CloudyWeb
+    FString AuthHeader = "Token " + Token;
+    TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+    HttpRequest->SetHeader(TEXT("Authorization"), AuthHeader);
+    HttpRequest->SetURL(Url);
+    HttpRequest->SetVerb(RequestMethod);
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebAPIImpl::OnGetResponseComplete);
+    
+    return HttpRequest->ProcessRequest();
 
 }
 
@@ -390,7 +390,7 @@ bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
 */
 FString CloudyWebAPIImpl::GetResponse()
 {
-	return HttpResponse;
+    return HttpResponse;
 }
 
 /**
@@ -404,23 +404,23 @@ FString CloudyWebAPIImpl::GetResponse()
 void CloudyWebAPIImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 
-	if (bWasSuccessful)
-	{
-		UE_LOG(CloudyWebAPILog, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
-
-		if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
-		{
-			HttpResponse = Response->GetContentAsString();
-		}
-		else
-		{
-			UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Response invalid"));
-		}
-	}
-	else
-	{
-		UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Is the server up?"));
-	}
+    if (bWasSuccessful)
+    {
+        UE_LOG(CloudyWebAPILog, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
+    
+        if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+        {
+            HttpResponse = Response->GetContentAsString();
+        }
+        else
+        {
+            UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Response invalid"));
+        }
+    }
+    else
+    {
+        UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Is the server up?"));
+    }
 
 }
  
