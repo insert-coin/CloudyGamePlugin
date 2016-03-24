@@ -14,7 +14,7 @@
 
 DEFINE_LOG_CATEGORY(CloudyWebAPILog);
 
-static const FString BaseUrl = "http://127.0.0.1:8000";
+static FString BaseUrl;
 static const FString AuthUrl = "/api-token-auth/";
 static const FString SaveDataUrl = "/save-data/";
 static FString Token;           // Robot's authentication token
@@ -30,6 +30,7 @@ void CloudyWebAPIImpl::StartupModule()
 {
     UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI started"));
 
+	// BaseUrl will be updated with the correct URL
 	BaseUrl = get_env_var("CLOUDYWEB_URL").c_str();
     // Token variable will be populated with the robot user's token.
     AttemptAuthentication();
