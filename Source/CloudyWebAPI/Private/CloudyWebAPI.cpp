@@ -11,17 +11,17 @@
 #include "HideWindowsPlatformTypes.h"
 #include "string"
 
+#define ENV_VAR_CLOUDYWEB_URL "CLOUDYWEB_URL"
+#define ENV_VAR_ROBOT_USER "ROBOT_USER"
 
 DEFINE_LOG_CATEGORY(CloudyWebAPILog);
 
-static FString BaseUrl;
+static FString BaseUrl;         // URL of CloudyWeb
 static const FString AuthUrl = "/api-token-auth/";
 static const FString SaveDataUrl = "/save-data/";
 static FString Token;           // Robot's authentication token
-static FString SaveFileURL0;    // URL for player controller 0
-static FString SaveFileURL1;    // URL for player controller 1
-static FString SaveFileURL2;    // URL for player controller 2
-static FString SaveFileURL3;    // URL for player controller 3
+static const int32 InitialArraySize = 4;
+static TArray<FString> SaveFileUrls;
 FString HttpResponse;
 
 // Foward declaration
@@ -33,8 +33,11 @@ void CloudyWebAPIImpl::StartupModule()
 {
     UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI started"));
 
+    // Initialize the array with InitialArraySize
+    SaveFileUrls.Init(InitialArraySize);
+
     // BaseUrl will be updated with the correct URL
-    BaseUrl = get_env_var("CLOUDYWEB_URL").c_str();
+    BaseUrl = get_env_var(ENV_VAR_CLOUDYWEB_URL).c_str();
     // Token variable will be populated with the robot user's token.
     AttemptAuthentication();
 }
@@ -99,7 +102,7 @@ bool CloudyWebAPIImpl::AttemptAuthentication()
 
     FString Username;
     FString Password;
-    FString value = get_env_var("ROBOT_USER").c_str();
+    FString value = get_env_var(ENV_VAR_ROBOT_USER).c_str();
     value.Split(";", &Username, &Password);
     UE_LOG(CloudyWebAPILog, Warning, TEXT("RobotUserName = %s, RobotPassword = %s"), 
            *Username.Trim(), *Password.Trim());
@@ -246,22 +249,15 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     errno_t err;
     std::string SaveFileURLCString;
 
-    if (PlayerControllerId == 0)
+    FString* SaveFileUrlsData = SaveFileUrls.GetData();
+    
+    if (SaveFileUrls.Num() <= PlayerControllerId)
     {
-        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL0);
+        UE_LOG(CloudyWebAPILog, Error, TEXT("Invalid controller ID!"));
+        return false;
     }
-    else if (PlayerControllerId == 1)
-    {
-        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL1);
-    }
-    else if (PlayerControllerId == 2)
-    {
-        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL2);
-    }
-    else if (PlayerControllerId == 3)
-    {
-        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileURL3);
-    }
+
+    SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileUrlsData[PlayerControllerId]);
 
     // Filepath of .sav file
     FString Filepath = FPaths::GameDir();
@@ -302,21 +298,15 @@ void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerC
     TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonString);
     FJsonSerializer::Deserialize(JsonReader, JsonObject);
 
-    if (PlayerControllerId == 0)
+    // More player controllers than the TArray size
+    if (PlayerControllerId >= SaveFileUrls.Num())
     {
-        SaveFileURL0 = JsonObject->GetStringField("saved_file");
+        SaveFileUrls.AddUninitialized(PlayerControllerId - InitialArraySize - 1);
+        SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
     }
-    else if (PlayerControllerId == 1)
+    else
     {
-        SaveFileURL1 = JsonObject->GetStringField("saved_file");
-    }
-    else if (PlayerControllerId == 2)
-    {
-        SaveFileURL2 = JsonObject->GetStringField("saved_file");
-    }
-    else if (PlayerControllerId == 3)
-    {
-        SaveFileURL3 = JsonObject->GetStringField("saved_file");
+        SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
     }
 }
 

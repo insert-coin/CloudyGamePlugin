@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine.h"
 #include "Http.h"
+#include "string"
 
 DECLARE_LOG_CATEGORY_EXTERN(CloudyWebAPILog, Log, All)
  
@@ -22,4 +23,5 @@ private:
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
     void ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId);
 	void OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
 };
