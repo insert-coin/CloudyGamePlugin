@@ -11,9 +11,6 @@
 #include "HideWindowsPlatformTypes.h"
 #include "string"
 
-// Credentials of the robot user
-#define USERNAME "joel"
-#define PASSWORD "1234"
 
 DEFINE_LOG_CATEGORY(CloudyWebAPILog);
 
@@ -32,8 +29,10 @@ FString HttpResponse;
 void CloudyWebAPIImpl::StartupModule()
 {
     UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI started"));
+
+	BaseUrl = get_env_var("CLOUDYWEB_URL").c_str();
     // Token variable will be populated with the robot user's token.
-    AttemptAuthentication(USERNAME, PASSWORD);
+    AttemptAuthentication();
 }
 
 // Automatically starts when UE4 is closed
@@ -66,24 +65,47 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 }
 
 /**
-* Uses the robot user's username and password to obtain an operator token to use for
-* various functions.
+* Gets the value of a system environment variable
 *
-* @param Username        Username of the robot user.
-* @param Password        Password of the robot user.
+* @param key     Variable name of the environment variable that you want.
+*
+* @return Returns the value corresponding to the given parameter key.
+*
+*/
+std::string get_env_var(std::string const & key) {
+	char * val;
+	val = getenv(key.c_str());
+	std::string retval = "";
+	if (val != NULL) {
+		retval = val;
+	}
+	return retval;
+}
+
+/**
+* Uses the robot user's username and password to obtain an operator token to use for
+* various functions.  The username and password is obtained from the system environment variables.
+*
 *
 * @return Returns true if the authentication was successful. Else, returns false.
 */
-bool CloudyWebAPIImpl::AttemptAuthentication(FString Username, FString Password)
+bool CloudyWebAPIImpl::AttemptAuthentication()
 {
     bool RequestSuccess = false;
+
+	FString Username;
+	FString Password;
+	FString value = get_env_var("ROBOT_USER").c_str();
+	value.Split(";", &Username, &Password);
+	UE_LOG(CloudyWebAPILog, Warning, TEXT("RobotUserName = %s, RobotPassword = %s"), 
+		   *Username.Trim(), *Password.Trim());
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
     FString ContentString;
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-    JsonObject->SetStringField(TEXT("username"), Username);
-    JsonObject->SetStringField(TEXT("password"), Password);
+    JsonObject->SetStringField(TEXT("username"), Username.Trim());
+    JsonObject->SetStringField(TEXT("password"), Password.Trim());
 
     TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&ContentString);
     FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter);
@@ -97,7 +119,6 @@ bool CloudyWebAPIImpl::AttemptAuthentication(FString Username, FString Password)
     RequestSuccess = HttpRequest->ProcessRequest();
 
     UE_LOG(CloudyWebAPILog, Warning, TEXT("URL = %s"), *Url);
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("ContentString = %s"), *ContentString);
 
     return RequestSuccess;
 }
@@ -138,7 +159,6 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
     struct curl_httppost *formpost = NULL;
     struct curl_httppost *lastptr = NULL;
     struct curl_slist *headerlist = NULL;
-    //static const char buf[] = "Expect:";
     FString AuthHeader = "Authorization: Token " + Token;
     std::string AuthHeaderCString(TCHAR_TO_UTF8(*AuthHeader));
     
@@ -186,7 +206,6 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
         /* Check if the request was successful */
         if (res == CURLE_OK)
         {
-            UE_LOG(CloudyWebAPILog, Warning, TEXT("File upload success!"));
             RequestSuccess = true;
         }
     

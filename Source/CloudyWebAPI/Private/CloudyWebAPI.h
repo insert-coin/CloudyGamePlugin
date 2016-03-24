@@ -18,7 +18,7 @@ private:
     void StartupModule();
     void ShutdownModule();
 
-    bool AttemptAuthentication(FString Username, FString Password);
+    bool AttemptAuthentication();
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
     void ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId);
 	void OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
