@@ -6,13 +6,18 @@
 	"Description": "",
 	"Category": "Other",
 	"CreatedBy": "Insert Coin",
-	"CreatedByURL": "",
+	"CreatedByURL": "https://github.com/insert-coin/CloudyPanelPlugin",
 	"DocsURL": "",
 	"MarketplaceURL": "",
-	"SupportURL": "",
+	"SupportURL": "https://github.com/insert-coin/CloudyPanelPlugin",
 	"Modules": 
     [
 		{
+			"Name": "CloudyWebAPI",
+			"Type": "Developer",
+			"LoadingPhase": "PreDefault"
+		},
+        {
 			"Name": "CloudyPanelPlugin",
 			"Type": "Developer",
 			"LoadingPhase": "Default"
@@ -21,6 +26,11 @@
             "Name": "CloudySaveManager",
 			"Type": "Developer",
 			"LoadingPhase": "PreDefault"
+        },
+		{
+            "Name": "CloudyStream",
+			"Type": "Developer",
+			"LoadingPhase": "Default"
         }
 	],
 	"EnabledByDefault": false,

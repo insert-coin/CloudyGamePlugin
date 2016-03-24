@@ -4,6 +4,7 @@
 
 #include "ModuleManager.h"
 
+
 DECLARE_LOG_CATEGORY_EXTERN(ModuleLog, Log, All)
 
 class CCloudyPanelPluginModule : public IModuleInterface
@@ -14,7 +15,6 @@ public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-
 	/** Input Handlers*/
 
 	/**
@@ -24,10 +24,10 @@ public:
 	* @param ControllerId The Controller Id on which command should be executed
 	*/
 	/*=============================================================================
-		Command Format
-		Incoming String: [01234567]
-		[0123] - Command (enumerated)
-		[4567] - Controller ID
+	Command Format
+	Incoming String: [01234567]
+	[0123] - Command (enumerated)
+	[4567] - Controller ID
 	=============================================================================*/
 	bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId);
 
@@ -43,14 +43,12 @@ public:
 	/** Timer */
 
 	/**
-	* Timer to poll for input from client, and call appropriate input handler
+	* Timer to poll for input from client, and call appropriate input handler.
+	* Stops when input is received.
 	*
 	* @param DeltaTime The time between polls
 	*/
-	bool CCloudyPanelPluginModule::Tick(float DeltaTime);
-
-	// Timer for capturing frames
-	bool CCloudyPanelPluginModule::CaptureFrame(float DeltaTime);
+	bool CCloudyPanelPluginModule::CheckConnection(float DeltaTime);
 
 
 	/** Helper Methods*/
@@ -63,34 +61,35 @@ public:
 	*/
 	bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg);
 
+	/**
+	* Method to add player to the game by Controller ID.
+	*
+	* @param ControllerId The Controller ID of the player to be added
+	*/
+	bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId);
+
+	/**
+	* Method to remove player by Controller ID. Sends a delete game session
+	* request to CloudyWeb server
+	*
+	* @param ControllerId The Controller ID of the player to be deleted
+	*/
+	bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId);
+
+
 	//Rama's String From Binary Array
 	//This function requires #include <string>
 	FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray);
-
-	/** Video Capture*/
-	void CCloudyPanelPluginModule::SetUpVideoCapture();
-	void CCloudyPanelPluginModule::SetUpPlayer(int ControllerId);
-	void CCloudyPanelPluginModule::StreamFrameToClient();
-	// Only handle 4 player split screen for current solution
-	void CCloudyPanelPluginModule::Split4Player();
-
+	
 
 	/** Class Variables */
 
-	// For TCP listener
+	FSocket* ListenSocket;
 	FSocket* TCPConnection;
+	FTcpListener* TcpListener;
 	FString InputStr;
 	bool HasInputStrChanged;
-
-	// For Video capture
-	int NumberOfPlayers;
-	TArray<FILE*> VideoPipeList;
-	TArray<TArray<FColor> > FrameBufferList;
-	bool isEngineRunning;
-	int sizeX, sizeY, halfSizeX, halfSizeY;
-	TArray<int> PlayerFrameMapping; // index is frame index, value is player index
-	FIntRect Screen1, Screen2, Screen3, Screen4;
-	FReadSurfaceDataFlags flags;
+	
 
 	/**
 	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin
@@ -99,5 +98,6 @@ public:
 		JOIN_GAME,
 		QUIT_GAME
 	};
+
 
 };
