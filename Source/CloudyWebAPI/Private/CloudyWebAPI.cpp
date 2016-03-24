@@ -24,6 +24,9 @@ static FString SaveFileURL2;    // URL for player controller 2
 static FString SaveFileURL3;    // URL for player controller 3
 FString HttpResponse;
 
+// Foward declaration
+std::string get_env_var(std::string const & key);
+
 // Automatically starts when UE4 is started.
 // Populates the Token variable with the robot user's token.
 void CloudyWebAPIImpl::StartupModule()
