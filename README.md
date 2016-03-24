@@ -42,13 +42,13 @@ Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPl
 
 Open streams (in vlc/ThinClient etc media players) using the following addresses:
 
-Player 0: http://<your public IP>:30000
+Player 0: http://\<your public IP\>:30000
 
-Player 1: http://<your public IP>:30001
+Player 1: http://\<your public IP\>:30001
 
-Player 2: http://<your public IP>:30002
+Player 2: http://\<your public IP\>:30002
 
-Player 3: http://<your public IP>:30003
+Player 3: http://\<your public IP\>:30003
 
 
 # CloudySaveManager
