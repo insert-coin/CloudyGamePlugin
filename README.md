@@ -97,17 +97,17 @@ ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", S
 Module to provide network API for communication to the CloudyWeb server.
 
 ## Setup
-- Assume that the CloudyPanelPlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
+- It is assumed that you have the CloudyPanelPlugin successfully installed. If not, please read the setup instructions at the top of this readme.
 
 - In the .cpp file where you want to use any public functions in this module: 
   - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
   
 - Add the following system environment variables
-  - Variable: `ROBOT_USER`. Content: `username; password`. Replace the username and password with the actual values.
-  - Variable: `CLOUDYWEB_URL`. Content: `http://url:port`. Replace the URL and port with the actual values.
+  - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values.
+  - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
   
 ## Usage
-Assume that we want to use the `UploadFile` function from this module. We call the function this way:
+Assuming that we want to use the `UploadFile` function from this module, we can call the function this way:
 
 ```cpp
 ICloudyWebAPI::Get().UploadFile(Filename, PlayerControllerId);
