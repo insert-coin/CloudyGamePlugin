@@ -32,8 +32,8 @@ namespace FUdpRemoteControllerSegment {
 	{
 		uint32 Sequence;
 		uint8 ControllerID;
-		int32 KeyCode;
-		int32 CharCode;
+		int16 KeyCode;
+		int16 CharCode;
 		uint8 InputEvent;
 
 		friend FArchive& operator<<(FArchive& Ar, FKeyboardInputChunk& Chunk)
@@ -51,8 +51,8 @@ namespace FUdpRemoteControllerSegment {
 	{
 		uint32 Sequence;
 		uint8 ControllerID;
-		int32 XAxis;
-		int32 YAxis;
+		int16 XAxis;
+		int16 YAxis;
 
 		friend FArchive& operator<<(FArchive& Ar, FMouseInputChunk& Chunk)
 		{
