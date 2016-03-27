@@ -248,7 +248,12 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     CURLcode res;
     errno_t err;
     std::string SaveFileURLCString;
+    
+    // Use the game id and username of the player to GET the save file URL from CloudyWeb
+    // Then populate SaveFileUrls (TArray)
+    // GetSaveFileUrl(int32 GameId, FString Username, int32 PlayerControllerId);
 
+    // Read the URL from the SaveFileUrls TArray to download the file and write to disk
     FString* SaveFileUrlsData = SaveFileUrls.GetData();
     
     if (SaveFileUrls.Num() <= PlayerControllerId)
