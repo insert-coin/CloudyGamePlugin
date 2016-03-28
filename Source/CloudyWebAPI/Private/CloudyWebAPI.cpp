@@ -306,13 +306,10 @@ void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerC
     // More player controllers than the TArray size
     if (PlayerControllerId >= SaveFileUrls.Num())
     {
-        SaveFileUrls.AddUninitialized(PlayerControllerId - InitialArraySize - 1);
-        SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
+        SaveFileUrls.AddUninitialized(PlayerControllerId - InitialArraySize + 1);
     }
-    else
-    {
-        SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
-    }
+
+    SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
 }
 
 /**
