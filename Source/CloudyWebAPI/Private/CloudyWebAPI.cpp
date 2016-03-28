@@ -34,7 +34,7 @@ void CloudyWebAPIImpl::StartupModule()
     UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI started"));
 
     // Initialize the array with InitialArraySize
-    SaveFileUrls.Init(InitialArraySize);
+    SaveFileUrls.SetNumUninitialized(InitialArraySize);
 
     // BaseUrl will be updated with the correct URL
     BaseUrl = get_env_var(ENV_VAR_CLOUDYWEB_URL).c_str();
