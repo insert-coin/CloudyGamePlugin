@@ -191,6 +191,17 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
     // Get game name
     FString GameName = FApp::GetGameName();
     std::string gameName(TCHAR_TO_UTF8(*GameName));
+
+    // Get game ID
+    //FString GameID = FString::FromInt(GetGameId());
+    FString GameID = FString::FromInt(1);
+    std::string GameIDCString(TCHAR_TO_UTF8(*GameID));
+
+    // Get username
+    //FString Username = GetUsername(PlayerControllerId);
+    FString Username = "joel";
+    std::string UsernameCString(TCHAR_TO_UTF8(*Username));
+
     
     // Convert PlayerControllerId
     FString playerControllerIdFString = FString::FromInt(PlayerControllerId);
@@ -212,14 +223,14 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
     
     /* Fill in the player controller ID field */
     curl_formadd(&formpost, &lastptr,
-        CURLFORM_COPYNAME, "controller",
-        CURLFORM_COPYCONTENTS, playerControllerId.c_str(),
+        CURLFORM_COPYNAME, "user",
+        CURLFORM_COPYCONTENTS, UsernameCString.c_str(),
         CURLFORM_END);
     
     /* Fill in the game name field */
     curl_formadd(&formpost, &lastptr,
         CURLFORM_COPYNAME, "game",
-        CURLFORM_COPYCONTENTS, gameName.c_str(),
+        CURLFORM_COPYCONTENTS, GameIDCString.c_str(),
         CURLFORM_END);
     
     curl = curl_easy_init();
@@ -284,7 +295,8 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     
     // Use the game id and username of the player to GET the save file URL from CloudyWeb
     // Then populate SaveFileUrls (TArray)
-    // GetSaveFileUrl(int32 GameId, FString Username, int32 PlayerControllerId);
+    //GetSaveFileUrl(GameId, GetUsername(PlayerControllerId), PlayerControllerId);
+    GetSaveFileUrl(1, "joel", PlayerControllerId);
 
     // Read the URL from the SaveFileUrls TArray to download the file and write to disk
     FString* SaveFileUrlsData = SaveFileUrls.GetData();
@@ -322,6 +334,47 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     return true;
 }
 
+void CloudyWebAPIImpl::GetSaveFileUrl(int32 GameId, FString Username, int32 PlayerControllerId)
+{
+    CURLcode ret;
+    CURL *hnd;
+    struct curl_slist *slist1;
+    slist1 = NULL;
+    std::string readBuffer;
+
+    // Make authorization token header
+    FString AuthHeader = "Authorization: Token " + Token;
+    std::string AuthHeaderCString(TCHAR_TO_UTF8(*AuthHeader));
+
+    // Make URL for GET request
+    FString SaveFileUrl = BaseUrl + SaveDataUrl + "?user=" + Username + "&game=" + FString::FromInt(GameId);
+    std::string SaveFileUrlCString(TCHAR_TO_UTF8(*SaveFileUrl));
+
+    MakeRequest(SaveFileUrl, "GET");
+    slist1 = curl_slist_append(slist1, AuthHeaderCString.c_str());
+    
+    hnd = curl_easy_init();
+    curl_easy_setopt(hnd, CURLOPT_URL, SaveFileUrlCString.c_str());
+    curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, slist1);
+    curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "GET");
+    
+    /* Set up string to write response into */
+    curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(hnd, CURLOPT_WRITEDATA, &readBuffer);
+    
+    // Make the GET request
+    ret = curl_easy_perform(hnd);
+    
+    // Cleanup
+    curl_easy_cleanup(hnd);
+    hnd = NULL;
+    curl_slist_free_all(slist1);
+    slist1 = NULL;
+    
+    UE_LOG(CloudyWebAPILog, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
+    ReadAndStoreSaveFileURL(UTF8_TO_TCHAR(readBuffer.c_str()), PlayerControllerId);
+}
+
 /**
 * This function parses the Json response after uploading the save file to obtain the 
 * URL of the save file.
@@ -332,6 +385,9 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 */
 void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId)
 {
+    JsonString = JsonString.Replace(TEXT("["), TEXT(""));
+    JsonString = JsonString.Replace(TEXT("]"), TEXT(""));
+    
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
     TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonString);
     FJsonSerializer::Deserialize(JsonReader, JsonObject);

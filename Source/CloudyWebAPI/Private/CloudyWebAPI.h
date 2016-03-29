@@ -24,8 +24,11 @@ private:
 	/** Authentication and Request API */
     bool AttemptAuthentication();
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-    void ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId);
 	void OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+    /** Save and load game */
+    void ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId);
+    void GetSaveFileUrl(int32 GameId, FString Username, int32 PlayerControllerId);
 
 	/** TCP Listener and command handling methods */
 	bool InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint);
