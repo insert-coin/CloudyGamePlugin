@@ -23,9 +23,16 @@ public class CloudyWebAPI : ModuleRules
                 "Engine",
                 "Json",
                 "Http",
+                "Sockets",
+                "Networking"
             }
         );
-        PrivateDependencyModuleNames.AddRange(new string[] { "JsonUtilities"});
+        PrivateDependencyModuleNames.AddRange(new string[] { 
+            "JsonUtilities",
+            "Sockets",
+            "Networking"
+            }
+        );
 
         // Curl
         string LibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/";

@@ -5,18 +5,10 @@
 #include <stdio.h>
 #include <sstream>
 
-#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"
-
 #define LOCTEXT_NAMESPACE "CloudyStream"
 
 #define PIXEL_SIZE 4
-#define BASE_PORT_NUM 30000
 #define FPS 30 // frames per second
-#define SEND_REQUEST_TIME 5 // frequency to send HTTP request, in seconds
-#define CHECK_RESPONSE_TIME 1 // frequency to check HTTP response, in seconds
-#define GAME_URL "/games/?name=" // to access game data from CloudyWeb server
-#define GET_REQUEST "GET"
-#define GAME_IP_JSON_FIELD "address"
 
 
 DEFINE_LOG_CATEGORY(CloudyStreamLog)
@@ -28,13 +20,6 @@ void CloudyStreamImpl::StartupModule()
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyStreamImpl::CaptureFrame), 1.0 / FPS);
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming module started"));
 
-	// get this game's IP
-	GameIP = "";
-	// make a request to CloudyWebs server for this game's IP
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyStreamImpl::RequestGameIP), SEND_REQUEST_TIME);
-	// start a timer to receive the response from the request
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyStreamImpl::GetGameIP), CHECK_RESPONSE_TIME);
-
 }
 
 
@@ -45,56 +30,16 @@ void CloudyStreamImpl::ShutdownModule()
 
 }
 
-bool CloudyStreamImpl::RequestGameIP(float DeltaTime)
-{
-	if (GameIP == "") // game IP not updated
-	{
-		FString RequestUrl = GAME_URL + (FString)GInternalGameName;
-		ICloudyWebAPI::Get().MakeRequest(RequestUrl, GET_REQUEST);
-		return true;
-	}
-	else
-	{	
-		return false;
-	}
-	
-}
-
-bool CloudyStreamImpl::GetGameIP(float DeltaTime)
-{
-	FString Response = ICloudyWebAPI::Get().GetResponse();
-	if (Response == "")
-	{
-		return true; // continue timer to wait for response
-	}
-	else
-	{
-		// parse GameIP from JSON response
-		
-		Response = Response.Replace(TEXT("["), TEXT(""));
-		Response = Response.Replace(TEXT("]"), TEXT(""));
-
-		TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-		TSharedRef<TJsonReader<TCHAR>>JsonReader = TJsonReaderFactory<TCHAR>::Create(Response);
-		FJsonSerializer::Deserialize(JsonReader, JsonObject);
-		GameIP = JsonObject->GetStringField(GAME_IP_JSON_FIELD);
-		//GameIP = Response;
-
-		UE_LOG(CloudyStreamLog, Warning, TEXT("Game IP obtained: %s"), *GameIP);
-		return false;
-	}
-}
-
 
 // call this for each player join
-void CloudyStreamImpl::SetUpPlayer(int ControllerId) {
+void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString StreamingIP) {
 
 	// encode and write players' frames to http stream
 	std::stringstream *StringStream = new std::stringstream();
 
-	std::string GameIPString(TCHAR_TO_UTF8(*GameIP)); // convert to std::string
+	std::string StreamingIPString(TCHAR_TO_UTF8(*StreamingIP)); // convert to std::string
 	
-	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt rgba -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << GameIPString << ":" << BASE_PORT_NUM + ControllerId << " 2> out" << ControllerId << ".txt";
+	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt rgba -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort << " 2> out" << ControllerId << ".txt";
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
 	// add frame buffer for new player
@@ -102,7 +47,7 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId) {
 	FrameBufferList.Add(TempFrameBuffer);
 
 	PlayerFrameMapping.Add(ControllerId);
-
+	NumberOfPlayers++;
 }
 
 
@@ -134,10 +79,9 @@ bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
 		isEngineRunning = true;
 		SetUpVideoCapture();
-		NumberOfPlayers = 1;
-		SetUpPlayer(0);
-
-
+		UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
+		NumberOfPlayers = 0;
+		GameInstance->DebugRemovePlayer(0); // remove default first player
 	}
 
 	// engine has been stopped
@@ -147,9 +91,8 @@ bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 
 		for (int i = 0; i < NumberOfPlayers; i++) {
 			// flush and close video pipes
-			int PipeIndex = PlayerFrameMapping[i];
-			fflush(VideoPipeList[PipeIndex]);
-			fclose(VideoPipeList[PipeIndex]);
+			fflush(VideoPipeList[i]);
+			fclose(VideoPipeList[i]);
 		}
 	}
 
@@ -201,18 +144,17 @@ void CloudyStreamImpl::Split4Player() {
 }
 
 
-void CloudyStreamImpl::StartPlayerStream(int32 ControllerId)
+void CloudyStreamImpl::StartPlayerStream(int32 ControllerId, int32 StreamingPort, FString StreamingIP)
 {
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Player %d stream started"), ControllerId);
-	SetUpPlayer(ControllerId);
-	NumberOfPlayers++;
+	SetUpPlayer(ControllerId, StreamingPort, StreamingIP);	
 }
 
 
 void CloudyStreamImpl::StopPlayerStream(int32 ControllerId)
 {
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Player %d stream stopped"), ControllerId);
-	int PipeIndex = PlayerFrameMapping[ControllerId];
+	int PipeIndex = PlayerFrameMapping.Find(ControllerId);
 	fflush(VideoPipeList[PipeIndex]);
 	fclose(VideoPipeList[PipeIndex]);
 	PlayerFrameMapping.Remove(ControllerId);

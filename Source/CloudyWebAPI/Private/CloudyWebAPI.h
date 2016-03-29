@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine.h"
 #include "Http.h"
+#include "Networking.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(CloudyWebAPILog, Log, All)
  
@@ -18,8 +19,36 @@ private:
     void StartupModule();
     void ShutdownModule();
 
+	/** Authentication and Request API */
     bool AttemptAuthentication();
     void OnAuthResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
     void ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId);
 	void OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	/** TCP Listener and command handling methods */
+	bool InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint);
+	bool CheckConnection(float DeltaTime);
+	bool SendToClient(FSocket* Socket, FString Msg);
+	FString StringFromBinaryArray(const TArray<uint8>& BinaryArray);
+	bool GetCloudyWebData(FString InputStr);
+	bool ExecuteCommand(FString Command, int32 ControllerId);
+
+
+	/** Class Variables */
+
+	FSocket* ListenSocket;
+	FSocket* TCPConnection;
+	FTcpListener* TcpListener;
+	FString InputStr;
+	bool HasInputStrChanged;
+
+	/** Game and user variables received from CloudyWeb */
+	int32 ControllerId;
+	int32 StreamingPort;
+	FString StreamingIP;
+	int32 GameId;
+	FString Username;
+	int32 GameSessionId;
+	FString Command;
+
 };

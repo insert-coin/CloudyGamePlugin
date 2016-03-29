@@ -4,11 +4,6 @@
 
 #include "ModuleManager.h"
 
-#include "HttpRequestAdapter.h"
-#include "HttpModule.h"
-#include "IHttpResponse.h"
-#include "Http.h"
-
 DECLARE_LOG_CATEGORY_EXTERN(CloudyStreamLog, Log, All)
 
 class CloudyStreamImpl : public IModuleInterface
@@ -22,20 +17,6 @@ public:
 	virtual void ShutdownModule() override;
 
 	/**
-	* Sends a request(s) for this game's IP from CloudyWeb server until
-	* request is successful
-	*/
-	bool CloudyStreamImpl::RequestGameIP(float DeltaTime);
-
-	/**
-	* Timer to get this game's IP from CloudyWeb server from the response. 
-	* The global variable GameIP is set after this function
-	*
-	* @return Whether to stop the timer or not
-	*/
-	bool CloudyStreamImpl::GetGameIP(float DeltaTime);
-
-	/**
 	* One-time set up for variables used during streaming, including frame 
 	* dimensions and split-screen information
 	*/
@@ -47,8 +28,10 @@ public:
 	* This is called whenever a player joins the game.
 	*
 	* @param ControllerId The Controller ID of the player who joins game
+	* @param StreamingPort The port to stream this player from
+	* @param StreamingIP The IP to stream this game from
 	*/
-	void CloudyStreamImpl::SetUpPlayer(int ControllerId);
+	void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString StreamingIP);
 
 	/**
 	* Handles streaming of the frame to client
@@ -66,8 +49,10 @@ public:
 	* (another module). It can be accessed by other modules.
 	*
 	* @param ControllerId The Controller ID of the player to start streaming
+	* @param StreamingPort The port to stream this player from
+	* @param StreamingIP The IP to stream this game from
 	*/
-	virtual void CloudyStreamImpl::StartPlayerStream(int32 ControllerId);
+	virtual void CloudyStreamImpl::StartPlayerStream(int32 ControllerId, int32 StreamingPort, FString StreamingIP);
 
 	/**
 	* Stops a player's stream and clean up. This is called by CloudyPanelPlugin
@@ -108,12 +93,11 @@ public:
 
 	/** Class variables **/
 	int NumberOfPlayers;
-	FString GameIP;
 	TArray<FILE*> VideoPipeList;
 	TArray<TArray<FColor> > FrameBufferList;
 	bool isEngineRunning;
 	int sizeX, sizeY, halfSizeX, halfSizeY;
-	TArray<int> PlayerFrameMapping; // index is frame index, value is player index
+	TArray<int> PlayerFrameMapping; // index is frame index, value is controller ID
 	FIntRect Screen1, Screen2, Screen3, Screen4;
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
 

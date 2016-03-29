@@ -10,9 +10,18 @@
 #include "ThirdParty/libcurl/include/Windows/curl/curl.h"
 #include "HideWindowsPlatformTypes.h"
 #include "string"
+#include "../../CloudyPanelPlugin/Public/CloudyPanelPlugin.h"
 
 
 DEFINE_LOG_CATEGORY(CloudyWebAPILog);
+
+#define SERVER_NAME "Listener"
+#define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
+#define CONNECTION_THREAD_TIME 5 // in seconds
+#define BUFFER_SIZE 1024
+
+#define SUCCESS_MSG "Success"
+#define FAILURE_MSG "Failure"
 
 static FString BaseUrl;
 static const FString AuthUrl = "/api-token-auth/";
@@ -37,12 +46,34 @@ void CloudyWebAPIImpl::StartupModule()
     BaseUrl = get_env_var("CLOUDYWEB_URL").c_str();
     // Token variable will be populated with the robot user's token.
     AttemptAuthentication();
+
+	// Set up socket listener to receive commands from CloudyWeb
+
+	//Create Socket
+	FIPv4Endpoint Endpoint(SERVER_ENDPOINT);
+	ListenSocket = FTcpSocketBuilder(SERVER_NAME).AsReusable().BoundToEndpoint(Endpoint).Listening(8);
+
+	//Set Buffer Size
+	int32 NewSize = 0;
+	ListenSocket->SetReceiveBufferSize(BUFFER_SIZE, NewSize);
+
+	TcpListener = new FTcpListener(*ListenSocket, CONNECTION_THREAD_TIME);
+	TcpListener->OnConnectionAccepted().BindRaw(this, &CloudyWebAPIImpl::InputHandler);
+
+	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyWebAPIImpl::CheckConnection), CONNECTION_THREAD_TIME);
+
+
+	// initialise class variables
+	InputStr = "";
+	HasInputStrChanged = false;
 }
 
 // Automatically starts when UE4 is closed
 void CloudyWebAPIImpl::ShutdownModule()
 {
     UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI stopped"));
+	delete TcpListener;
+	ListenSocket->Close();
 }
 
 /**
@@ -425,6 +456,139 @@ void CloudyWebAPIImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpRespo
         UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Is the server up?"));
     }
 
+}
+
+/**
+* Parses string and stores as global variables for access by other modules
+*
+* @param InputStr Input string to parse
+* @return Whether parsing was successful or not
+*/
+bool CloudyWebAPIImpl::GetCloudyWebData(FString InputStr)
+{
+	bool isSuccessful = false;
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	TSharedRef<TJsonReader<TCHAR>>JsonReader = TJsonReaderFactory<TCHAR>::Create(InputStr);
+	isSuccessful = FJsonSerializer::Deserialize(JsonReader, JsonObject);
+
+	// these 2 fields will be populated for both join/quit commands
+	Command = JsonObject->GetStringField("command");
+	ControllerId = JsonObject->GetIntegerField("controller");
+
+	// somehow, there is no try function for integer field
+	if (JsonObject->HasField("streaming_port")) 
+	{
+		StreamingPort = JsonObject->GetIntegerField("streaming_port");
+	}
+	
+	if (JsonObject->HasField("game_id"))
+	{
+		GameId = JsonObject->GetIntegerField("game_id");
+	}
+	if (JsonObject->HasField("game_session_id"))
+	{
+		GameSessionId = JsonObject->GetIntegerField("game_session_id");
+	}
+
+	JsonObject->TryGetStringField("streaming_ip", StreamingIP);
+	JsonObject->TryGetStringField("username", Username);
+
+	
+	return isSuccessful;
+}
+
+
+/**
+* Timer to periodically check for join/quit signals from client, and call
+* appropriate input handler.
+*
+* @param DeltaTime Time taken by method
+*/
+bool CloudyWebAPIImpl::CheckConnection(float DeltaTime)
+{
+	bool Success = false;
+	if (HasInputStrChanged) 
+	{
+		if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
+		{
+			UE_LOG(CloudyWebAPILog, Warning, TEXT("Success! input str: %s"), *InputStr);
+			GetCloudyWebData(InputStr);
+			UE_LOG(CloudyWebAPILog, Warning, TEXT("Success! Controllerid: %d command: %s"), ControllerId, *Command);
+			Success = CCloudyPanelPluginModule::Get().ExecuteCommand(Command, ControllerId, StreamingPort, StreamingIP, GameSessionId);
+			InputStr = "";
+			HasInputStrChanged = false;
+		}		
+
+		// Send response to client
+		if (Success)
+		{
+			SendToClient(TCPConnection, SUCCESS_MSG);
+		}
+		else
+		{
+			SendToClient(TCPConnection, FAILURE_MSG);
+		}
+
+	}
+
+	return true; // continue timer to check for requests
+}
+
+/**
+* Helper method to send message to client
+*
+* @param Socket The TCP socket used to send the message
+* @param Msg The message to be sent
+*/
+bool CloudyWebAPIImpl::SendToClient(FSocket* Socket, FString Msg)
+{
+	TCHAR *serialisedChar = Msg.GetCharArray().GetData();
+	int32 size = FCString::Strlen(serialisedChar);
+	int32 sent = 0;
+	return Socket->Send((uint8*)TCHAR_TO_UTF8(serialisedChar), size, sent);
+
+	return true;
+}
+
+/**
+* Handles input passed by TCP listener
+*
+* @param ConnectionSocket The TCP socket connecting the listener and client
+* @param Endpoint The endpoint of the socket connection
+*/
+bool CloudyWebAPIImpl::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint)
+{
+
+	TArray<uint8> ReceivedData;
+	uint32 Size;
+
+	// wait for data to arrive
+	while (!(ConnectionSocket->HasPendingData(Size)));
+
+	// handle data - change global InputStr
+	ReceivedData.Init(FMath::Min(Size, 65507u));
+
+	int32 Read = 0;
+	ConnectionSocket->Recv(ReceivedData.GetData(), ReceivedData.Num(), Read);
+	FString ReceivedString = StringFromBinaryArray(ReceivedData);
+
+	InputStr = ReceivedString;
+	HasInputStrChanged = true;
+
+	TCPConnection = ConnectionSocket;
+
+	return true;
+
+}
+
+
+//Rama's String From Binary Array
+//This function requires #include <string>
+FString CloudyWebAPIImpl::StringFromBinaryArray(const TArray<uint8>& BinaryArray)
+{
+	//Create a string from a byte array!
+	std::string cstr(reinterpret_cast<const char*>(BinaryArray.GetData()), BinaryArray.Num());
+	return FString(cstr.c_str());
 }
  
 IMPLEMENT_MODULE(CloudyWebAPIImpl, CloudyWebAPI)
