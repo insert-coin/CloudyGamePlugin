@@ -193,19 +193,24 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
     std::string gameName(TCHAR_TO_UTF8(*GameName));
 
     // Get game ID
-    //FString GameID = FString::FromInt(GetGameId());
-    FString GameID = FString::FromInt(1);
+    FString GameID = FString::FromInt(GetGameId());
+    //FString GameID = FString::FromInt(1);
     std::string GameIDCString(TCHAR_TO_UTF8(*GameID));
 
     // Get username
-    //FString Username = GetUsername(PlayerControllerId);
-    FString Username = "joel";
+    FString Username = GetUsername(PlayerControllerId);
+    //FString Username = "joel";
     std::string UsernameCString(TCHAR_TO_UTF8(*Username));
-
     
     // Convert PlayerControllerId
     FString playerControllerIdFString = FString::FromInt(PlayerControllerId);
     std::string playerControllerId(TCHAR_TO_UTF8(*playerControllerIdFString));
+
+    if (GetGameId() == -1 || Username.Equals("") || PlayerControllerId < 0)
+    {
+        UE_LOG(CloudyWebAPILog, Error, TEXT("The game ID, username, or player controller ID is invalid"));
+        return false;
+    }
     
     struct curl_httppost *formpost = NULL;
     struct curl_httppost *lastptr = NULL;
@@ -292,11 +297,17 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     CURLcode res;
     errno_t err;
     std::string SaveFileURLCString;
+
+    if (GetGameId() == -1 || GetUsername(PlayerControllerId).Equals("") || PlayerControllerId < 0)
+    {
+        UE_LOG(CloudyWebAPILog, Error, TEXT("The game ID, username, or player controller ID is invalid"));
+        return false;
+    }
     
     // Use the game id and username of the player to GET the save file URL from CloudyWeb
     // Then populate SaveFileUrls (TArray)
-    //GetSaveFileUrl(GameId, GetUsername(PlayerControllerId), PlayerControllerId);
-    GetSaveFileUrl(1, "joel", PlayerControllerId);
+    GetSaveFileUrl(GetGameId(), GetUsername(PlayerControllerId), PlayerControllerId);
+    //GetSaveFileUrl(1, "joel", PlayerControllerId);
 
     // Read the URL from the SaveFileUrls TArray to download the file and write to disk
     FString* SaveFileUrlsData = SaveFileUrls.GetData();
@@ -517,6 +528,8 @@ void CloudyWebAPIImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpRespo
 bool CloudyWebAPIImpl::GetCloudyWebData(FString InputStr)
 {
 	bool isSuccessful = false;
+    UE_LOG(CloudyWebAPILog, Error, TEXT("Input String = %s"), *InputStr);
+
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 	TSharedRef<TJsonReader<TCHAR>>JsonReader = TJsonReaderFactory<TCHAR>::Create(InputStr);
 	isSuccessful = FJsonSerializer::Deserialize(JsonReader, JsonObject);
