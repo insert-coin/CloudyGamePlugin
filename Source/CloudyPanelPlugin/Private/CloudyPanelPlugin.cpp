@@ -7,6 +7,8 @@ CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
 #include "CloudyPanelPluginPrivatePCH.h"
 #include "CloudyPanelPlugin.h"
 #include "../../CloudyStream/Public/CloudyStream.h"
+#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +19,7 @@ CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
 DEFINE_LOG_CATEGORY(ModuleLog)
 
 
-#define GAME_SESSION_URL "/game-session/"
+#define DELETE_URL "/game-session/"
 #define DELETE_REQUEST "DELETE"
 #define MAX_PLAYERS 4
 
@@ -86,6 +88,8 @@ bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId, int32 GameSessio
 {
 	UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
 	ULocalPlayer* const ExistingPlayer = GameInstance->FindLocalPlayerFromControllerId(ControllerId);
+	bool Success = false;
+
 	if (ExistingPlayer != NULL)
 	{
 		UE_LOG(ModuleLog, Warning, TEXT("Controller Id: %d"), ControllerId);
@@ -93,22 +97,18 @@ bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId, int32 GameSessio
 		// Future implementation of Quit Game - delete session from server
 
 		// delete appropriate game session
-		/*
-		FString Int32String = FString::FromInt(ControllerId);
-		FString GameSession = DELETE_URL + Int32String + "/";
-		UE_LOG(ModuleLog, Warning, TEXT("Game Session string: %s"), *GameSession);
-		Success = ICloudyWebAPI::Get().MakeRequest(Int32String, DELETE_REQUEST);
-		*/
-		//UE_LOG(ModuleLog, Warning, TEXT("Game name: %s"), GAME_NAME);
+		int32 GameSessionId = GameSessionIdMapping[ControllerId];
+		FString GameSessionString = DELETE_URL + FString::FromInt(GameSessionId) + "/";
+		UE_LOG(ModuleLog, Warning, TEXT("Game Session string: %s"), *GameSessionString);
+		Success = ICloudyWebAPI::Get().MakeRequest(GameSessionString, DELETE_REQUEST);
 
 		// check for successful removal from server before removing
-		// if (Success) {
-	
-		CloudyStreamImpl::Get().StopPlayerStream(ControllerId);
-		GameSessionIdMapping[ControllerId] = -1;
-		return GameInstance->RemoveLocalPlayer(ExistingPlayer);
-
-		
+		if (Success)
+		{
+			CloudyStreamImpl::Get().StopPlayerStream(ControllerId);
+			GameSessionIdMapping[ControllerId] = -1;
+			return GameInstance->RemoveLocalPlayer(ExistingPlayer);
+		}
 	}
 
 	return false;
