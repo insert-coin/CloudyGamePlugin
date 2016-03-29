@@ -17,7 +17,6 @@ CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
 DEFINE_LOG_CATEGORY(ModuleLog)
 
 
-
 #define GAME_SESSION_URL "/game-session/"
 #define DELETE_REQUEST "DELETE"
 #define MAX_PLAYERS 4

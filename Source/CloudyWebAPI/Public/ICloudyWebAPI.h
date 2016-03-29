@@ -73,4 +73,21 @@ public:
 	*
 	*/
 	virtual FString GetResponse() = 0;
+
+	/**
+	* Accessor for GameId.
+	*
+	* @return GameId, or -1 if not yet obtained from server
+	*
+	*/
+	virtual int32 GetGameId() = 0;
+
+	/**
+	* Accessor for Username, by ControllerId
+	*
+	* @param ControllerId The controller ID of the user
+	* @return Username, or empty string if not a valid user (using ControllerId)
+	*
+	*/
+	virtual FString GetUsername(int32 ControllerId) = 0;
 };

@@ -13,6 +13,8 @@ public:
     bool DownloadFile(FString Filename, int32 PlayerControllerId);
 	bool MakeRequest(FString ResourceUrl, FString RequestMethod);
 	FString GetResponse();
+	int32 GetGameId();
+	FString GetUsername(int32 ControllerId);
 
 private:
     /** IModuleInterface implementation */
@@ -47,7 +49,7 @@ private:
 	int32 StreamingPort;
 	FString StreamingIP;
 	int32 GameId;
-	FString Username;
+	TArray<FString> UsernameList;
 	int32 GameSessionId;
 	FString Command;
 

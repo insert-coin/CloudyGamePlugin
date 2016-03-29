@@ -19,6 +19,7 @@ DEFINE_LOG_CATEGORY(CloudyWebAPILog);
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
 #define CONNECTION_THREAD_TIME 5 // in seconds
 #define BUFFER_SIZE 1024
+#define MAX_PLAYERS 4
 
 #define SUCCESS_MSG "Success"
 #define FAILURE_MSG "Failure"
@@ -66,6 +67,7 @@ void CloudyWebAPIImpl::StartupModule()
 	// initialise class variables
 	InputStr = "";
 	HasInputStrChanged = false;
+
 }
 
 // Automatically starts when UE4 is closed
@@ -491,8 +493,9 @@ bool CloudyWebAPIImpl::GetCloudyWebData(FString InputStr)
 	}
 
 	JsonObject->TryGetStringField("streaming_ip", StreamingIP);
+	FString Username;
 	JsonObject->TryGetStringField("username", Username);
-
+	UsernameList.Insert(Username, ControllerId);
 	
 	return isSuccessful;
 }
@@ -581,6 +584,30 @@ bool CloudyWebAPIImpl::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoi
 
 }
 
+// Accessor for GameId. Returns -1 if GameId has not been sent
+int32 CloudyWebAPIImpl::GetGameId()
+{
+	if (GameId > 0)
+		return GameId;
+	else
+		return -1;
+}
+
+// Accessor for username by controller ID. Returns empty string if
+// this controller id does not belong to any user
+FString CloudyWebAPIImpl::GetUsername(int32 ControllerId)
+{
+	if (UsernameList.IsValidIndex(ControllerId))
+	{
+		return UsernameList[ControllerId];
+	}
+	else
+	{
+		return "";
+	}
+	
+	
+}
 
 //Rama's String From Binary Array
 //This function requires #include <string>
