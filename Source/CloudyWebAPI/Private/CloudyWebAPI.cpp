@@ -18,7 +18,7 @@
 DEFINE_LOG_CATEGORY(CloudyWebAPILog);
 
 #define SERVER_NAME "Listener"
-#define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), 55556)
+#define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(0, 0, 0, 0), 55556)
 #define CONNECTION_THREAD_TIME 5 // in seconds
 #define BUFFER_SIZE 1024
 #define MAX_PLAYERS 4
@@ -461,10 +461,13 @@ void CloudyWebAPIImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
 */
 bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
 {
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("Getting resource: %s"), *ResourceUrl);
     FString Url = BaseUrl + ResourceUrl;
     HttpResponse = "";
     
+    UE_LOG(CloudyWebAPILog, Warning, TEXT("Resource Url: %s"), *Url);
+    UE_LOG(CloudyWebAPILog, Warning, TEXT("Request method: %s"), *RequestMethod);
+
+
     // use token to get resource from CloudyWeb
     FString AuthHeader = "Token " + Token;
     TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
@@ -473,6 +476,8 @@ bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
     HttpRequest->SetVerb(RequestMethod);
     HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebAPIImpl::OnGetResponseComplete);
     
+    UE_LOG(CloudyWebAPILog, Warning, TEXT("Auth header: %s"), *AuthHeader);
+
     return HttpRequest->ProcessRequest();
 
 }
