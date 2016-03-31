@@ -20,84 +20,62 @@ public:
 	/**
 	* Executes commands such as add and remove player on the gamethread
 	*
-	* @param Command The command to be executed (enumerated)
+	* @param Command The command to be executed (join/quit)
 	* @param ControllerId The Controller Id on which command should be executed
+	* @param StreamingPort The port to stream this player from (for join)
+	* @param StreamingIP The IP to stream this game from (for join)
+	* @param GameSessionId The id of this game session (for join)
 	*/
-	/*=============================================================================
-	Command Format
-	Incoming String: [01234567]
-	[0123] - Command (enumerated)
-	[4567] - Controller ID
-	=============================================================================*/
-	bool CCloudyPanelPluginModule::ExecuteCommand(int32 Command, int32 ControllerId);
+	virtual bool CCloudyPanelPluginModule::ExecuteCommand(FString Command, 
+		int32 ControllerId, int32 StreamingPort, FString StreamingIP, int32 GameSessionId);
 
-	/**
-	* Handles input passed by TCP listener
-	*
-	* @param ConnectionSocket The TCP socket connecting the listener and client
-	* @param Endpoint The endpoint of the socket connection
-	*/
-	bool CCloudyPanelPluginModule::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint);
-
-
-	/** Timer */
-
-	/**
-	* Timer to poll for input from client, and call appropriate input handler.
-	* Stops when input is received.
-	*
-	* @param DeltaTime The time between polls
-	*/
-	bool CCloudyPanelPluginModule::CheckConnection(float DeltaTime);
-
-
-	/** Helper Methods*/
-
-	/**
-	* Helper method to send message to client
-	*
-	* @param Socket The TCP socket used to send the message
-	* @param Msg The message to be sent
-	*/
-	bool CCloudyPanelPluginModule::SendToClient(FSocket* Socket, FString Msg);
 
 	/**
 	* Method to add player to the game by Controller ID.
 	*
 	* @param ControllerId The Controller ID of the player to be added
+	* @param StreamingPort The port to stream this player from
+	* @param StreamingIP The IP to stream this game from
+	* @param GameSessionId The ID of this game session
 	*/
-	bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId);
+	bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId, int32 StreamingPort,
+		FString StreamingIP, int32 GameSessionId);
+
 
 	/**
 	* Method to remove player by Controller ID. Sends a delete game session
 	* request to CloudyWeb server
 	*
 	* @param ControllerId The Controller ID of the player to be deleted
+	* @param GameSessionId The game session to be removed
 	*/
-	bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId);
+	bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId, int32 GameSessionId);
 
-
-	//Rama's String From Binary Array
-	//This function requires #include <string>
-	FString CCloudyPanelPluginModule::StringFromBinaryArray(const TArray<uint8>& BinaryArray);
-	
-
-	/** Class Variables */
-
-	FSocket* ListenSocket;
-	FSocket* TCPConnection;
-	FTcpListener* TcpListener;
-	FString InputStr;
-	bool HasInputStrChanged;
-	
 
 	/**
-	* Enum to establish command protocol between CloudyPanel and CloudyPanelPlugin
+	* Singleton-like access to this module's interface.  This is just for
+	* convenience! Beware of calling this during the shutdown phase, though.
+	* Your module might have been unloaded already.
+	*
+	* @return Returns singleton instance, loading the module on demand if needed
 	*/
-	enum CommandList {
-		JOIN_GAME,
-		QUIT_GAME
-	};
+	static inline CCloudyPanelPluginModule& Get()
+	{
+		return FModuleManager::LoadModuleChecked< CCloudyPanelPluginModule >("CloudyPanelPlugin");
+	}
 
 
+	/**
+	* Checks to see if this module is loaded and ready.  It is only valid to call
+	* Get() if IsAvailable() returns true.
+	*
+	* @return True if the module is loaded and ready to use
+	*/
+	static inline bool IsAvailable()
+	{
+		return FModuleManager::Get().IsModuleLoaded("CloudyPanelPlugin");
+	}
+
+	/** Class variables */
+	int GameSessionIdMapping[]; // maps controller ID to game session ID
 };
