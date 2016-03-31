@@ -194,12 +194,10 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
 
     // Get game ID
     FString GameID = FString::FromInt(GetGameId());
-    //FString GameID = FString::FromInt(1);
     std::string GameIDCString(TCHAR_TO_UTF8(*GameID));
 
     // Get username
     FString Username = GetUsername(PlayerControllerId);
-    //FString Username = "joel";
     std::string UsernameCString(TCHAR_TO_UTF8(*Username));
     
     // Convert PlayerControllerId
@@ -307,7 +305,6 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     // Use the game id and username of the player to GET the save file URL from CloudyWeb
     // Then populate SaveFileUrls (TArray)
     GetSaveFileUrl(GetGameId(), GetUsername(PlayerControllerId), PlayerControllerId);
-    //GetSaveFileUrl(1, "joel", PlayerControllerId);
 
     // Read the URL from the SaveFileUrls TArray to download the file and write to disk
     FString* SaveFileUrlsData = SaveFileUrls.GetData();
