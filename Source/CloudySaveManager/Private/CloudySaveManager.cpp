@@ -74,81 +74,83 @@ USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotNam
                                                           const int32 PCID)
 {
     // Load from CloudyWeb, write it to default save location.
-    ICloudyWebAPI::Get().DownloadFile(SlotName, PCID);
+    bool LoadedSuccessfully = ICloudyWebAPI::Get().DownloadFile(SlotName, PCID);
 
     // Appends the player controller ID to the save file, 
     // so that the split screen players do not overwrite 1 save file.
     FString NewSlotName = SlotName + "-" + FString::FromInt(PCID);
     
     USaveGame* OutSaveGameObject = NULL;
-    
-    ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
-    // If we have a save system and a valid name..
-    if (SaveSystem && (NewSlotName.Len() > 0))
+
+    if (LoadedSuccessfully)
     {
-        // Load raw data from slot
-        TArray<uint8> ObjectBytes;
-        bool bSuccess = SaveSystem->LoadGame(false, *NewSlotName, UserIndex, ObjectBytes);
-        if (bSuccess)
+        ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
+        // If we have a save system and a valid name..
+        if (SaveSystem && (NewSlotName.Len() > 0))
         {
-            FMemoryReader MemoryReader(ObjectBytes, true);
-
-            int32 FileTypeTag;
-            MemoryReader << FileTypeTag;
-
-            int32 SavegameFileVersion;
-            if (FileTypeTag != UE4_SAVEGAME_FILE_TYPE_TAG)
+            // Load raw data from slot
+            TArray<uint8> ObjectBytes;
+            bool bSuccess = SaveSystem->LoadGame(false, *NewSlotName, UserIndex, ObjectBytes);
+            if (bSuccess)
             {
-                // this is an old saved game, back up the file pointer to the beginning and assume version 1
-                MemoryReader.Seek(0);
-                SavegameFileVersion = 1;
-
-                // Note for 4.8 and beyond: if you get a crash loading a pre-4.8 version of your savegame file and 
-                // you don't want to delete it, try uncommenting these lines and changing them to use the version 
-                // information from your previous build. Then load and resave your savegame file.
-                //MemoryReader.SetUE4Ver(MyPreviousUE4Version);				// @see GPackageFileUE4Version
-                //MemoryReader.SetEngineVer(MyPreviousEngineVersion);		// @see FEngineVersion::Current()
+                FMemoryReader MemoryReader(ObjectBytes, true);
+        
+                int32 FileTypeTag;
+                MemoryReader << FileTypeTag;
+        
+                int32 SavegameFileVersion;
+                if (FileTypeTag != UE4_SAVEGAME_FILE_TYPE_TAG)
+                {
+                    // this is an old saved game, back up the file pointer to the beginning and assume version 1
+                    MemoryReader.Seek(0);
+                    SavegameFileVersion = 1;
+        
+                    // Note for 4.8 and beyond: if you get a crash loading a pre-4.8 version of your savegame file and 
+                    // you don't want to delete it, try uncommenting these lines and changing them to use the version 
+                    // information from your previous build. Then load and resave your savegame file.
+                    //MemoryReader.SetUE4Ver(MyPreviousUE4Version);				// @see GPackageFileUE4Version
+                    //MemoryReader.SetEngineVer(MyPreviousEngineVersion);		// @see FEngineVersion::Current()
+                }
+                else
+                {
+                    // Read version for this file format
+                    MemoryReader << SavegameFileVersion;
+        
+                    // Read engine and UE4 version information
+                    int32 SavedUE4Version;
+                    MemoryReader << SavedUE4Version;
+        
+                    FEngineVersion SavedEngineVersion;
+                    MemoryReader << SavedEngineVersion;
+        
+                    MemoryReader.SetUE4Ver(SavedUE4Version);
+                    MemoryReader.SetEngineVer(SavedEngineVersion);
+                }
+        
+                // Get the class name
+                FString SaveGameClassName;
+                MemoryReader << SaveGameClassName;
+        
+                // Try and find it, and failing that, load it
+                UClass* SaveGameClass = FindObject<UClass>(ANY_PACKAGE, *SaveGameClassName);
+                if (SaveGameClass == NULL)
+                {
+                    SaveGameClass = LoadObject<UClass>(NULL, *SaveGameClassName);
+                }
+        
+                // If we have a class, try and load it.
+                if (SaveGameClass != NULL)
+                {
+                    OutSaveGameObject = NewObject<USaveGame>(GetTransientPackage(), SaveGameClass);
+        
+                    FObjectAndNameAsStringProxyArchive Ar(MemoryReader, true);
+                    OutSaveGameObject->Serialize(Ar);
+                }
+        
+                UE_LOG(CloudySaveManagerLog, Warning, TEXT("Game loaded successfully."));
             }
-            else
-            {
-                // Read version for this file format
-                MemoryReader << SavegameFileVersion;
-
-                // Read engine and UE4 version information
-                int32 SavedUE4Version;
-                MemoryReader << SavedUE4Version;
-
-                FEngineVersion SavedEngineVersion;
-                MemoryReader << SavedEngineVersion;
-
-                MemoryReader.SetUE4Ver(SavedUE4Version);
-                MemoryReader.SetEngineVer(SavedEngineVersion);
-            }
-
-            // Get the class name
-            FString SaveGameClassName;
-            MemoryReader << SaveGameClassName;
-
-            // Try and find it, and failing that, load it
-            UClass* SaveGameClass = FindObject<UClass>(ANY_PACKAGE, *SaveGameClassName);
-            if (SaveGameClass == NULL)
-            {
-                SaveGameClass = LoadObject<UClass>(NULL, *SaveGameClassName);
-            }
-
-            // If we have a class, try and load it.
-            if (SaveGameClass != NULL)
-            {
-                OutSaveGameObject = NewObject<USaveGame>(GetTransientPackage(), SaveGameClass);
-
-                FObjectAndNameAsStringProxyArchive Ar(MemoryReader, true);
-                OutSaveGameObject->Serialize(Ar);
-            }
-
-            UE_LOG(CloudySaveManagerLog, Warning, TEXT("Game loaded successfully."));
         }
     }
-    
     return OutSaveGameObject;
 }
 

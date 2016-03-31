@@ -80,6 +80,33 @@ virtual bool Cloudy_SaveGameToSlot
     const int32 PCID, // Player Controller ID of the player you are saving
 )
 ```
+`Cloudy_LoadGameFromSlot` takes in the same three functions as Unreal Engine's `LoadGameFromSlot`, with an additional parameter: the player controller index.
+
+API:
+```cpp
+UFUNCTION(BlueprintCallable, Category="Game")
+USaveGame* Cloudy_LoadGameFromSlot
+(
+    const FString& SlotName, 
+    const int32 UserIndex,
+    const int32 PCID
+)
+````
+
+Additionally, before loading the data from the save file, please check if the save file has been successfully downloaded from our cloud.
+
+For example:
+```cpp
+UMySaveGame* LoadGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+LoadGameInstance = Cast<UMySaveGame>(ICloudySaveManager::Get().Cloudy_LoadGameFromSlot(TEXT("SaveGame1"), 
+                                                                                       LoadGameInstance->UserIndex, 0));
+if (LoadGameInstance != NULL)
+{
+    ...
+    Load your data here
+    ...
+}
+```
 
 Example: 
 ```cpp

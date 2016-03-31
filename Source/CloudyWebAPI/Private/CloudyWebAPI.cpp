@@ -296,7 +296,8 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     errno_t err;
     std::string SaveFileURLCString;
 
-    if (GetGameId() == -1 || GetUsername(PlayerControllerId).Equals("") || PlayerControllerId < 0)
+    if (GetGameId() == -1 || GetUsername(PlayerControllerId).Equals("") || 
+        PlayerControllerId < 0 || SaveFileUrls.Num() <= PlayerControllerId)
     {
         UE_LOG(CloudyWebAPILog, Error, TEXT("The game ID, username, or player controller ID is invalid"));
         return false;
@@ -308,40 +309,54 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 
     // Read the URL from the SaveFileUrls TArray to download the file and write to disk
     FString* SaveFileUrlsData = SaveFileUrls.GetData();
-    
-    if (SaveFileUrls.Num() <= PlayerControllerId)
+
+    if (!SaveFileUrlsData[PlayerControllerId].Equals(""))
     {
-        UE_LOG(CloudyWebAPILog, Error, TEXT("Invalid controller ID!"));
+        UE_LOG(CloudyWebAPILog, Log, TEXT("File URL obtained! Writing to disk."));
+        
+        SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileUrlsData[PlayerControllerId]);
+        
+        // Filepath of .sav file
+        FString Filepath = FPaths::GameDir();
+        Filepath += "Saved/SaveGames/" + Filename + "-" +
+            FString::FromInt(PlayerControllerId) + ".sav";
+        std::string filePath(TCHAR_TO_UTF8(*Filepath));
+        
+        curl = curl_easy_init();
+        if (curl) {
+            if ((err = fopen_s(&fp, filePath.c_str(), "wb")) == 0)
+            {
+                curl_easy_setopt(curl, CURLOPT_URL, SaveFileURLCString.c_str());
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+                curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+                res = curl_easy_perform(curl);
+                curl_easy_cleanup(curl);
+                fclose(fp);
+            }
+            else
+            {
+                UE_LOG(CloudyWebAPILog, Error, TEXT("Could not create save file!"));
+            }
+        }
+        return true;
+    }
+    else
+    {
+        UE_LOG(CloudyWebAPILog, Warning, TEXT("There was no save file URL!"));
+
         return false;
     }
-
-    SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileUrlsData[PlayerControllerId]);
-
-    // Filepath of .sav file
-    FString Filepath = FPaths::GameDir();
-    Filepath += "Saved/SaveGames/" + Filename + "-" + 
-                FString::FromInt(PlayerControllerId) + ".sav";
-    std::string filePath(TCHAR_TO_UTF8(*Filepath));
-
-    curl = curl_easy_init();
-    if (curl) {
-        if ((err = fopen_s(&fp, filePath.c_str(), "wb")) == 0)
-        {
-            curl_easy_setopt(curl, CURLOPT_URL, SaveFileURLCString.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-            res = curl_easy_perform(curl);
-            curl_easy_cleanup(curl);
-            fclose(fp);
-        }
-        else
-        {
-            UE_LOG(CloudyWebAPILog, Error, TEXT("Could not create save file!"));
-        }
-    }
-    return true;
 }
 
+/**
+* Retrieves the save file URL from CloudyWeb.
+*
+* @param GameId                 Filename of the save game file.
+* @param Username               Username of the player who requested the file.
+* @param PlayerControllerId     Player controller ID of the player who requested the file.
+*
+*
+*/
 void CloudyWebAPIImpl::GetSaveFileUrl(int32 GameId, FString Username, int32 PlayerControllerId)
 {
     CURLcode ret;
@@ -405,8 +420,16 @@ void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerC
     {
         SaveFileUrls.AddUninitialized(PlayerControllerId - InitialArraySize + 1);
     }
-
-    SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
+    if (JsonObject->HasField("saved_file"))
+    {
+        UE_LOG(CloudyWebAPILog, Error, TEXT("Json saved_file field found."));
+        SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
+    }
+    else
+    {
+        UE_LOG(CloudyWebAPILog, Error, TEXT("Json saved_file field NOT found."));
+        SaveFileUrls.Insert("", PlayerControllerId);
+    }
 }
 
 /**
