@@ -31,7 +31,11 @@
             "Name": "CloudyStream",
 			"Type": "Developer",
 			"LoadingPhase": "Default"
-        }
+        },
+        {
+            "Name" : "CloudyRemoteController",
+            "Type" : "Runtime"
+        } 
 	],
 	"EnabledByDefault": false,
 	"CanContainContent": false,
