@@ -27,7 +27,7 @@ DEFINE_LOG_CATEGORY(CloudyWebAPILog);
 #define FAILURE_MSG "Failure"
 
 static FString BaseUrl;         // URL of CloudyWeb
-static const FString AuthUrl = "/api-token-auth/";
+static const FString AuthUrl = "/api-token-auth/tokens/";
 static const FString SaveDataUrl = "/save-data/";
 static FString Token;           // Robot's authentication token
 static const int32 InitialArraySize = 4;
