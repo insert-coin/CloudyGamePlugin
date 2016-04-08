@@ -45,7 +45,7 @@ public:
 	void CloudyStreamImpl::Split4Player();
 
 	/**
-	* Starts a stream for a player. This is called by CloudyPanelPlugin
+	* Starts a stream for a player. This is called by CloudyPlayerManager
 	* (another module). It can be accessed by other modules.
 	*
 	* @param ControllerId The Controller ID of the player to start streaming
@@ -55,7 +55,7 @@ public:
 	virtual void CloudyStreamImpl::StartPlayerStream(int32 ControllerId, int32 StreamingPort, FString StreamingIP);
 
 	/**
-	* Stops a player's stream and clean up. This is called by CloudyPanelPlugin
+	* Stops a player's stream and clean up. This is called by CloudyPlayerManager
 	* (another module). It can be accessed by other modules.
 	*
 	* @param ControllerId The Controller ID of the player to start streaming

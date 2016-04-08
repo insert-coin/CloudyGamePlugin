@@ -1,11 +1,7 @@
-// Some copyright should be here...
-/*=============================================================================
-CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
-=============================================================================*/
 //TCP implementation from : https ://wiki.unrealengine.com/TCP_Socket_Listener,_Receive_Binary_Data_From_an_IP/Port_Into_UE4,_(Full_Code_Sample)
 
-#include "CloudyPanelPluginPrivatePCH.h"
-#include "CloudyPanelPlugin.h"
+#include "CloudyPlayerManagerPrivatePCH.h"
+#include "CloudyPlayerManager.h"
 #include "../../CloudyStream/Public/CloudyStream.h"
 #include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"
 
@@ -14,7 +10,7 @@ CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
 #include <stdlib.h>
 #include <string>
 
-#define LOCTEXT_NAMESPACE "CCloudyPanelPluginModule"
+#define LOCTEXT_NAMESPACE "CCloudyPlayerManagerModule"
 
 DEFINE_LOG_CATEGORY(ModuleLog)
 
@@ -24,11 +20,11 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 #define MAX_PLAYERS 4
 
 
-void CCloudyPanelPluginModule::StartupModule()
+void CCloudyPlayerManagerModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 
-	UE_LOG(ModuleLog, Warning, TEXT("CloudyPanel Plugin started"));
+	UE_LOG(ModuleLog, Warning, TEXT("CloudyPlayerManager started"));
 
 	// initialise game session id mapping
 	int GameSessionIdMapping[MAX_PLAYERS];
@@ -38,7 +34,7 @@ void CCloudyPanelPluginModule::StartupModule()
 	}
 }
 
-void CCloudyPanelPluginModule::ShutdownModule()
+void CCloudyPlayerManagerModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.	
@@ -47,7 +43,7 @@ void CCloudyPanelPluginModule::ShutdownModule()
 }
 
 
-bool CCloudyPanelPluginModule::ExecuteCommand(FString Command,
+bool CCloudyPlayerManagerModule::ExecuteCommand(FString Command,
 	int32 ControllerId, int32 StreamingPort, FString StreamingIP, int32 GameSessionId)
 {
 	if (Command == "join")
@@ -65,7 +61,7 @@ bool CCloudyPanelPluginModule::ExecuteCommand(FString Command,
 }
 
 
-bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId, int32 StreamingPort,
+bool CCloudyPlayerManagerModule::AddPlayer(int32 ControllerId, int32 StreamingPort,
 	FString StreamingIP, int32 GameSessionId)
 {
 	UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
@@ -84,7 +80,7 @@ bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId, int32 StreamingPort
 }
 
 
-bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId, int32 GameSessionId)
+bool CCloudyPlayerManagerModule::RemovePlayer(int32 ControllerId, int32 GameSessionId)
 {
 	UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
 	ULocalPlayer* const ExistingPlayer = GameInstance->FindLocalPlayerFromControllerId(ControllerId);
@@ -117,4 +113,4 @@ bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId, int32 GameSessio
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(CCloudyPanelPluginModule, CloudyPanelPlugin)
+IMPLEMENT_MODULE(CCloudyPlayerManagerModule, CloudyPlayerManager)

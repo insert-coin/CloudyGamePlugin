@@ -10,7 +10,7 @@
 #include "ThirdParty/libcurl/include/Windows/curl/curl.h"
 #include "HideWindowsPlatformTypes.h"
 #include "string"
-#include "../../CloudyPanelPlugin/Public/CloudyPanelPlugin.h"
+#include "../../CloudyPlayerManager/Public/CloudyPlayerManager.h"
 
 #define ENV_VAR_CLOUDYWEB_URL "CLOUDYWEB_URL"
 #define ENV_VAR_ROBOT_USER "ROBOT_USER"
@@ -580,7 +580,7 @@ bool CloudyWebAPIImpl::CheckConnection(float DeltaTime)
             UE_LOG(CloudyWebAPILog, Warning, TEXT("Success! input str: %s"), *InputStr);
             GetCloudyWebData(InputStr);
             UE_LOG(CloudyWebAPILog, Warning, TEXT("Success! Controllerid: %d command: %s"), ControllerId, *Command);
-            Success = CCloudyPanelPluginModule::Get().ExecuteCommand(Command, ControllerId, StreamingPort, StreamingIP, GameSessionId);
+            Success = CCloudyPlayerManagerModule::Get().ExecuteCommand(Command, ControllerId, StreamingPort, StreamingIP, GameSessionId);
             InputStr = "";
             HasInputStrChanged = false;
         }        

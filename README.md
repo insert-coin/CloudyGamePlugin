@@ -1,11 +1,18 @@
-# CloudyPanelPlugin
+# CloudyGamePlugin
 ## Description
 
-Module to interface between CloudyPanel and Engine, for joining and quitting game.
+Unreal Engine 4 Plugins for CloudyGame.
+This plugins contains 5 modules:
+
+* CloudyWebAPI
+* CloudyRemoteController
+* CloudyStream
+* CloudyPlayerManager
+* CloudySaveManager
 
 ## Setup
 
-In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyPanelPlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
+In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
 
 ## Usage
 
@@ -57,7 +64,7 @@ Player 3: http://\<your public IP\>:30003
 Module to provide customized save game and load game API. This API will allow the game developer to use our custom save/load game functions to upload the player's save game file to our cloud.
 
 ## Setup
-- Assume that the CloudyPanelPlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
+- Assume that the CloudyGamePlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
 
 - In `YourProject/Source/YourProject/YourProject.Build.cs`:
   - Ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. 
@@ -97,7 +104,7 @@ ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", S
 Module to provide network API for communication to the CloudyWeb server.
 
 ## Setup
-- It is assumed that you have the CloudyPanelPlugin successfully installed. If not, please read the setup instructions at the top of this readme.
+- It is assumed that you have the CloudyGamePlugin successfully installed. If not, please read the setup instructions at the top of this readme.
 
 - In the .cpp file where you want to use any public functions in this module: 
   - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
