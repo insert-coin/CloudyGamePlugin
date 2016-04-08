@@ -2,14 +2,14 @@
 
 using UnrealBuildTool;
 
-public class CloudyPanelPlugin : ModuleRules
+public class CloudyPlayerManager : ModuleRules
 {
-	public CloudyPanelPlugin(TargetInfo Target)
+	public CloudyPlayerManager(TargetInfo Target)
 	{
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
-				"CloudyPanelPlugin/Public"
+				"CloudyPlayerManager/Public"
 				
 				// ... add public include paths required here ...
 			}
@@ -18,7 +18,7 @@ public class CloudyPanelPlugin : ModuleRules
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"CloudyPanelPlugin/Private",
+				"CloudyPlayerManager/Private",
 				
 				// ... add other private include paths required here ...
 			}

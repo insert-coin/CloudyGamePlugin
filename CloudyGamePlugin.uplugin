@@ -2,14 +2,14 @@
     "FileVersion": 3,
     "Version": 1,
     "VersionName": "1.0",
-    "FriendlyName": "CloudyPanelPlugin",
+    "FriendlyName": "CloudyGamePlugin",
     "Description": "",
     "Category": "Other",
     "CreatedBy": "Insert Coin",
-    "CreatedByURL": "https://github.com/insert-coin/CloudyPanelPlugin",
+    "CreatedByURL": "https://github.com/insert-coin/CloudyGamePlugin",
     "DocsURL": "",
     "MarketplaceURL": "",
-    "SupportURL": "https://github.com/insert-coin/CloudyPanelPlugin",
+    "SupportURL": "https://github.com/insert-coin/CloudyGamePlugin",
     "Modules": 
     [
         {
@@ -18,7 +18,7 @@
             "LoadingPhase": "PreDefault"
         },
         {
-            "Name": "CloudyPanelPlugin",
+            "Name": "CloudyPlayerManager",
             "Type": "Developer",
             "LoadingPhase": "Default"
         },

@@ -7,7 +7,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(ModuleLog, Log, All)
 
-class CCloudyPanelPluginModule : public IModuleInterface
+class CCloudyPlayerManagerModule : public IModuleInterface
 {
 public:
 
@@ -26,7 +26,7 @@ public:
 	* @param StreamingIP The IP to stream this game from (for join)
 	* @param GameSessionId The id of this game session (for join)
 	*/
-	virtual bool CCloudyPanelPluginModule::ExecuteCommand(FString Command, 
+	virtual bool CCloudyPlayerManagerModule::ExecuteCommand(FString Command, 
 		int32 ControllerId, int32 StreamingPort, FString StreamingIP, int32 GameSessionId);
 
 
@@ -38,7 +38,7 @@ public:
 	* @param StreamingIP The IP to stream this game from
 	* @param GameSessionId The ID of this game session
 	*/
-	bool CCloudyPanelPluginModule::AddPlayer(int32 ControllerId, int32 StreamingPort,
+	bool CCloudyPlayerManagerModule::AddPlayer(int32 ControllerId, int32 StreamingPort,
 		FString StreamingIP, int32 GameSessionId);
 
 
@@ -59,9 +59,9 @@ public:
 	*
 	* @return Returns singleton instance, loading the module on demand if needed
 	*/
-	static inline CCloudyPanelPluginModule& Get()
+	static inline CCloudyPlayerManagerModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked< CCloudyPanelPluginModule >("CloudyPanelPlugin");
+		return FModuleManager::LoadModuleChecked< CCloudyPlayerManagerModule >("CloudyPlayerManager");
 	}
 
 
@@ -73,7 +73,7 @@ public:
 	*/
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded("CloudyPanelPlugin");
+		return FModuleManager::Get().IsModuleLoaded("CloudyPlayerManager");
 	}
 
 	/** Class variables */
