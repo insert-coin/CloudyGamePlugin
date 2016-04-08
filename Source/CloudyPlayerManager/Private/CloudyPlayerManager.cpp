@@ -1,7 +1,3 @@
-// Some copyright should be here...
-/*=============================================================================
-CloudPanelPlugin.cpp: Implementation of CloudyPanel TCP Plugin
-=============================================================================*/
 //TCP implementation from : https ://wiki.unrealengine.com/TCP_Socket_Listener,_Receive_Binary_Data_From_an_IP/Port_Into_UE4,_(Full_Code_Sample)
 
 #include "CloudyPlayerManagerPrivatePCH.h"

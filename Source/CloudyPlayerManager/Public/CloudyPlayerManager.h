@@ -49,7 +49,7 @@ public:
 	* @param ControllerId The Controller ID of the player to be deleted
 	* @param GameSessionId The game session to be removed
 	*/
-	bool CCloudyPanelPluginModule::RemovePlayer(int32 ControllerId, int32 GameSessionId);
+	bool CCloudyPlayerManagerModule::RemovePlayer(int32 ControllerId, int32 GameSessionId);
 
 
 	/**
