@@ -39,7 +39,7 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 
 	std::string StreamingIPString(TCHAR_TO_UTF8(*StreamingIP)); // convert to std::string
 	
-	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort << " 2> out" << ControllerId << ".txt";
+	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
 	// add frame buffer for new player
