@@ -2,7 +2,7 @@
 ## Description
 
 Unreal Engine 4 Plugins for CloudyGame.
-This plugins contains 5 modules:
+This plugin contains 5 modules:
 
 * CloudyWebAPI
 * CloudyRemoteController
