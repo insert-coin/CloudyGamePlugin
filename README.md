@@ -74,6 +74,7 @@ Module to provide customized save game and load game API. This API will allow th
   - Ensure that `#include "ICloudySaveManager.h"` is included.
 
 ## Usage
+### Save Game
 `Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with an additional parameter: the player controller index.
 
 API:
@@ -81,21 +82,49 @@ API:
 UFUNCTION(BlueprintCallable, Category="Game")
 virtual bool Cloudy_SaveGameToSlot
 (
-    USaveGame * SaveGameObject,
-    const FString & SlotName,
+    USaveGame * SaveGameObject, // The save game object
+    const FString & SlotName,   // The name of the save file
     const int32 UserIndex,
-    const int32 PCID, // Player Controller ID of the player you are saving
+    const int32 PCID,           // Player Controller ID of the player you are saving
 )
 ```
-
 Example: 
 ```cpp
 #include "ICloudySaveManager.h"
 
 // Create a save game object
 UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
-// Save the game
+// Save the game, and upload to our cloud
 ICloudySaveManager::Get().Cloudy_SaveGameToSlot(SaveGameInstance, "SaveGame1", SaveGameInstance->UserIndex, 0);
+```
+### Load Game
+`Cloudy_LoadGameFromSlot` takes in the same three functions as Unreal Engine's `LoadGameFromSlot`, with an additional parameter: the player controller index.
+
+API:
+```cpp
+UFUNCTION(BlueprintCallable, Category="Game")
+USaveGame* Cloudy_LoadGameFromSlot
+(
+    const FString& SlotName,  // The name of the save file
+    const int32 UserIndex,
+    const int32 PCID          // Player Controller ID of the player you are saving
+)
+````
+
+Additionally, before loading the data from the save file, please check if the save file has been successfully downloaded from our cloud.
+
+For example:
+```cpp
+// Create the save game object
+UMySaveGame* LoadGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+// Attempt to load the save game from our cloud
+LoadGameInstance = Cast<UMySaveGame>(ICloudySaveManager::Get().Cloudy_LoadGameFromSlot(TEXT("SaveGame1"), 
+                                                                                       LoadGameInstance->UserIndex, 0));
+// Check if the save file has been loaded successfully
+if (LoadGameInstance != NULL)
+{
+    //Load your data here
+}
 ```
 
 # CloudyWebAPI
