@@ -39,7 +39,7 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 
 	std::string StreamingIPString(TCHAR_TO_UTF8(*StreamingIP)); // convert to std::string
 	
-	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt rgba -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort << " 2> out" << ControllerId << ".txt";
+	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
 	// add frame buffer for new player
@@ -72,8 +72,6 @@ void CloudyStreamImpl::SetUpVideoCapture() {
 
 
 bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
-	//UE_LOG(CloudyStreamLog, Warning, TEXT("time %f"), DeltaTime); // can track running time
-
 
 	// engine has been started
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
@@ -118,7 +116,7 @@ void CloudyStreamImpl::StreamFrameToClient() {
 
 		for (int j = 0; j < FrameSize; ++j) {
 			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
-			PixelBuffer[j] = Pixel.A << 24 | Pixel.B << 16 | Pixel.G << 8 | Pixel.R;
+			PixelBuffer[j] = Pixel.DWColor();
 		}
 
 		fwrite(PixelBuffer, halfSizeX * PIXEL_SIZE, halfSizeY, VideoPipeList[i]);
