@@ -139,7 +139,7 @@ Module to provide network API for communication to the CloudyWeb server.
   - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
   
 - Add the following system environment variables
-  - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values.
+  - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values. Do not use a semicolon (`;`) in the username or password.
   - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
   
 ## Usage
