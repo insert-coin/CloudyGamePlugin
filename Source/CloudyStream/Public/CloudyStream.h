@@ -20,7 +20,7 @@ public:
 	* One-time set up for variables used during streaming, including frame 
 	* dimensions and split-screen information
 	*/
-	void CloudyStreamImpl::SetUpVideoCapture();
+	void SetUpVideoCapture();
 
 	/**
 	* Sets up variables required per-player for streaming, including the 
@@ -31,18 +31,18 @@ public:
 	* @param StreamingPort The port to stream this player from
 	* @param StreamingIP The IP to stream this game from
 	*/
-	void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString StreamingIP);
+	void SetUpPlayer(int ControllerId, int StreamingPort, FString StreamingIP);
 
 	/**
 	* Handles streaming of the frame to client
 	*/
-	void CloudyStreamImpl::StreamFrameToClient();
+	void StreamFrameToClient();
 
 	/**
 	* Handles 4 player split-screen. The split frame buffers are stored in
 	* class variables
 	*/
-	void CloudyStreamImpl::Split4Player();
+	void Split4Player();
 
 	/**
 	* Starts a stream for a player. This is called by CloudyPlayerManager
@@ -52,7 +52,7 @@ public:
 	* @param StreamingPort The port to stream this player from
 	* @param StreamingIP The IP to stream this game from
 	*/
-	virtual void CloudyStreamImpl::StartPlayerStream(int32 ControllerId, int32 StreamingPort, FString StreamingIP);
+	virtual void StartPlayerStream(int32 ControllerId, int32 StreamingPort, FString StreamingIP);
 
 	/**
 	* Stops a player's stream and clean up. This is called by CloudyPlayerManager
@@ -60,7 +60,7 @@ public:
 	*
 	* @param ControllerId The Controller ID of the player to start streaming
 	*/
-	virtual void CloudyStreamImpl::StopPlayerStream(int32 ControllerId);
+	virtual void StopPlayerStream(int32 ControllerId);
 
 
 	/**
@@ -88,7 +88,7 @@ public:
 
 	
 	// Timer for capturing frames
-	bool CloudyStreamImpl::CaptureFrame(float DeltaTime);
+	bool CaptureFrame(float DeltaTime);
 
 
 	/** Class variables **/
