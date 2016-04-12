@@ -19,6 +19,7 @@ In your game folder, create a folder named 'Plugins' if it doesn't exist. Put Cl
 This plugin currently supports join game and quit game. To test, set up CloudyWeb (if necessary) with a new game, and send the following sample JSON packets via TCP to <your public IP>:55556 :
 
 To join game - {"controller": "0", "streaming_port": "30000", "streaming_ip": "127.0.0.1", "game_id": "2", "username": "abc", "game_session_id": "3", "command": "join"}
+
 To quit game - {"controller": "0", "command": "quit"}
 
 OtherFiles/sendTCP.py has been included to assist testing.
