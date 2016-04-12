@@ -26,7 +26,7 @@ public:
 	* @param StreamingIP The IP to stream this game from (for join)
 	* @param GameSessionId The id of this game session (for join)
 	*/
-	virtual bool CCloudyPlayerManagerModule::ExecuteCommand(FString Command, 
+	virtual bool ExecuteCommand(FString Command, 
 		int32 ControllerId, int32 StreamingPort, FString StreamingIP, int32 GameSessionId);
 
 
@@ -38,7 +38,7 @@ public:
 	* @param StreamingIP The IP to stream this game from
 	* @param GameSessionId The ID of this game session
 	*/
-	bool CCloudyPlayerManagerModule::AddPlayer(int32 ControllerId, int32 StreamingPort,
+	bool AddPlayer(int32 ControllerId, int32 StreamingPort,
 		FString StreamingIP, int32 GameSessionId);
 
 
@@ -49,7 +49,7 @@ public:
 	* @param ControllerId The Controller ID of the player to be deleted
 	* @param GameSessionId The game session to be removed
 	*/
-	bool CCloudyPlayerManagerModule::RemovePlayer(int32 ControllerId, int32 GameSessionId);
+	bool RemovePlayer(int32 ControllerId, int32 GameSessionId);
 
 
 	/**
