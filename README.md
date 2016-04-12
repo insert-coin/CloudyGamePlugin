@@ -58,8 +58,9 @@ Player 3: http://\<your public IP\>:30003
 Module to provide customized save game and load game API. This API will allow the game developer to use our custom save/load game functions to upload the player's save game file to our cloud.
 
 ## Setup
-- Assume that the CloudyGamePlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
+- We assume that the CloudyGamePlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
 
+## Usage
 - In `YourProject/Source/YourProject/YourProject.Build.cs`:
   - Ensure that `CloudySaveManager` is added to your `PrivateDependencyModuleNames`. 
   - E.g. `PrivateDependencyModuleNames.AddRange(new string[] { "CloudySaveManager" });`
@@ -67,7 +68,6 @@ Module to provide customized save game and load game API. This API will allow th
 - In your .cpp file where you want to use our custom `Cloudy_SaveGameToSlot` functions: 
   - Ensure that `#include "ICloudySaveManager.h"` is included.
 
-## Usage
 ### Save Game
 `Cloudy_SaveGameToSlot` takes in the same three functions as Unreal Engine's `SaveGameToSlot`, with an additional parameter: the player controller index.
 
@@ -128,15 +128,15 @@ Module to provide network API for communication to the CloudyWeb server.
 
 ## Setup
 - It is assumed that you have the CloudyGamePlugin successfully installed. If not, please read the setup instructions at the top of this readme.
-
-- In the .cpp file where you want to use any public functions in this module: 
-  - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
   
 - Add the following system environment variables
   - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values. Do not use a semicolon (`;`) in the username or password.
   - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
   
 ## Usage
+- In the .cpp file where you want to use any public functions in this module: 
+  - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
+
 Assuming that we want to use the `UploadFile` function from this module, we can call the function this way:
 
 ```cpp
