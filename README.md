@@ -50,11 +50,11 @@ Module for streaming
 
 Put ffmpeg executable into your Unreal Engine\Engine\Binaries\Win64 folder.
 
-Modify Unreal Engine. Go to UGameViewportClient.cpp and edit the function UGameViewportClient::LayoutPlayers(). Change SplitType to 4 player. Edit the code as follows:
+Modify Unreal Engine. Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. Edit the code as follows:
 
-Comment out this line: const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
+Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
 
-Add this line: const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;
+Add this line: `const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;`
 
 ## Usage
 
