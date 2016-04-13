@@ -39,7 +39,7 @@ To quit game:
 }
 ```
 
-OtherFiles/sendTCP.py has been included to assist testing.
+`OtherFiles/sendTCP.py` has been included to assist testing.
 
 # CloudyStream
 ## Description
@@ -48,9 +48,9 @@ Module for streaming
 
 ## Setup
 
-Put ffmpeg executable into your Unreal Engine\Engine\Binaries\Win64 folder.
+Put the ffmpeg executable into your `Unreal Engine\Engine\Binaries\Win64` folder.
 
-Modify Unreal Engine. Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. Edit the code as follows:
+Modify Unreal Engine. Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
 
 Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
 
@@ -58,15 +58,15 @@ Add this line: `const ESplitScreenType::Type SplitType = ESplitScreenType::FourP
 
 ## Usage
 
-Open streams (in vlc/ThinClient etc media players) using the following addresses:
+Open streams (in VLC, the Thin Client, or other media players) using the following addresses:
 
-Player 0: http://\<your public IP\>:30000
+Player 0: `http://<your public IP>:30000`
 
-Player 1: http://\<your public IP\>:30001
+Player 1: `http://<your public IP>:30001`
 
-Player 2: http://\<your public IP\>:30002
+Player 2: `http://<your public IP>:30002`
 
-Player 3: http://\<your public IP\>:30003
+Player 3: `http://<your public IP>:30003`
 
 
 # CloudySaveManager
