@@ -87,9 +87,9 @@ To join game:
   "controller": "0",
   "streaming_port": "30000",
   "streaming_ip": "127.0.0.1",
-  "game_id": "2",
+  "game_id": "1",
   "username": "abc",
-  "game_session_id": "3",
+  "game_session_id": "1",
   "command": "join"
 }
 ```
