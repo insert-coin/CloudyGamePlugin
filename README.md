@@ -16,10 +16,12 @@ We assume that you are using our Unreal Engine fork of the source code, and have
 
 0. You should have one Unreal Engine game project created. To do this, open the Unreal Engine executable which can be found at `UnrealEngine\Engine\Binaries\Win64`. Launch `UE4Editor.exe`. 
   - If this is your first run, you should see a window to create a game. Ensure that the circled parts are selected correctly.
-  - We recommended using the "First Person" template, but you are free to use others (except "Basic Code").
-  - If your computer has a weak GPU, you can reduce the graphical quality of the game (3rd circle from the top, middle square button).
-  - Please remember the location and name of the project.
-  - ![Create Game](http://i.imgur.com/kj8HO4K.png)
+    - We recommended using the "First Person" template, but you are free to use others (except "Basic Code").
+    - If your computer has a weak GPU, you can reduce the graphical quality of the game (3rd circle from the top, middle square button).
+    - Please remember the location and name of the project.
+    - ![Create Game](http://i.imgur.com/kj8HO4K.png)
+  - If you do not see the above window, then the engine has launched with a previously made game.
+    - Click on "File", then click on "New Project". You can now continue with the steps above.
 
 1. In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
 
