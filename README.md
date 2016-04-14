@@ -1,7 +1,7 @@
 # CloudyGamePlugin
 ## Description
 
-Unreal Engine 4 Plugins for CloudyGame.
+Unreal Engine 4 Plugin for CloudyGame.
 This plugin contains 5 modules:
 
 * CloudyWebAPI
@@ -10,33 +10,49 @@ This plugin contains 5 modules:
 * CloudyPlayerManager
 * CloudySaveManager
 
-## Setup
+## Plugin Setup
 
-In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
+1. In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
 
-Your game directory structure should look similar to this (assuming the name of your game is MyProject):
-```bash
-MyProject
-├───Binaries
-├───Build
-├───Config
-├───Content
-├───DerivedDataCache
-├───Intermediate
-├───Plugins
-│   └───CloudyGamePlugin
-│       ├───OtherFiles
-│       ├───Resources
-│       └───Source
-│           ├───CloudyPlayerManager
-│           ├───CloudyRemoteController
-│           ├───CloudySaveManager
-│           ├───CloudyStream
-│           └───CloudyWebAPI
-├───Saved
-└───Source
-```
-Some folders may be missing if you have not compiled your project before.
+  Your game directory structure should look similar to this (assuming the name of your game is MyProject):
+  ```bash
+  MyProject
+  ├───Binaries
+  ├───Build
+  ├───Config
+  ├───Content
+  ├───DerivedDataCache
+  ├───Intermediate
+  ├───Plugins
+  │   └───CloudyGamePlugin
+  │       ├───OtherFiles
+  │       ├───Resources
+  │       └───Source
+  │           ├───CloudyPlayerManager
+  │           ├───CloudyRemoteController
+  │           ├───CloudySaveManager
+  │           ├───CloudyStream
+  │           └───CloudyWebAPI
+  ├───Saved
+  └───Source
+  ```
+  Some folders may be missing if you have not compiled your project before.
+
+2. Download the precompiled FFmpeg build from [here](https://ffmpeg.zeranoe.com/builds/). Choose the static build.
+Put `ffmpeg.exe` into your `Unreal Engine\Engine\Binaries\Win64` folder. This is the Unreal Engine source code, not your game project.
+
+3. Modify Unreal Engine. If you have downloaded the `cloudygame` branch of our Unreal Engine fork, this step can be skipped. 
+  Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
+  
+  Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
+  
+  Add this line: `const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;`
+
+4. Add the following system environment variables. To learn how to do this, visit this webpage [here](http://www.howtogeek.com/118594/how-to-edit-your-system-path-for-easy-command-line-access/).
+  - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values. Do not use a semicolon (`;`) in the username or password. 
+    - The robot user has to be an administrator in CloudyWeb. Do this by creating a super user (instructions in the CloudyWeb repository).
+  - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
+    - To test the deployment locally, you can use `http://127.0.0.1:8000` as the value.
 
 # CloudyPlayerManager
 ## Usage
@@ -69,17 +85,10 @@ To quit game:
 # CloudyStream
 ## Description
 
-Module for streaming
+Module for broadcasting the video stream.
 
 ## Setup
-
-Put the ffmpeg executable into your `Unreal Engine\Engine\Binaries\Win64` folder.
-
-Modify Unreal Engine. If you have downloaded the `cloudygame` branch of our Unreal Engine fork, this step can be skipped. Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
-
-Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
-
-Add this line: `const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;`
+- We assume that the CloudyGamePlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
 
 ## Usage
 
@@ -170,12 +179,6 @@ Module to provide network API for communication to the CloudyWeb server.
 
 ## Setup
 - It is assumed that you have the CloudyGamePlugin successfully installed. If not, please read the setup instructions at the top of this readme.
-  
-- Add the following system environment variables
-  - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values. Do not use a semicolon (`;`) in the username or password. 
-    - The robot user has to be an administrator in CloudyWeb. Do this by creating a super user (instructions in the CloudyWeb repository).
-  - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
-    - To test the deployment locally, you can use `http://127.0.0.1:8000` as the value.
   
 ## Usage
 - In the .cpp file where you want to use any public functions in this module: 
