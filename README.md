@@ -14,6 +14,31 @@ This plugin contains 5 modules:
 
 In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
 
+Your game directory structure should look similar to this (assuming the name of your game is MyProject):
+```bash
+MyProject
+├───Binaries
+├───Build
+├───Config
+├───Content
+├───DerivedDataCache
+├───Intermediate
+├───Plugins
+│   └───CloudyGamePlugin
+│       ├───OtherFiles
+│       ├───Resources
+│       └───Source
+│           ├───CloudyPlayerManager
+│           ├───CloudyRemoteController
+│           ├───CloudySaveManager
+│           ├───CloudyStream
+│           └───CloudyWebAPI
+├───Saved
+└───Source
+```
+Some folders may be missing if you have not compiled your project before.
+
+# CloudyPlayerManager
 ## Usage
 
 This plugin currently supports join game and quit game. To test, set up CloudyWeb (if necessary) with a new game, and send the following sample JSON packets via TCP to <your public IP>:55556 :
@@ -50,7 +75,7 @@ Module for streaming
 
 Put the ffmpeg executable into your `Unreal Engine\Engine\Binaries\Win64` folder.
 
-Modify Unreal Engine. Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
+Modify Unreal Engine. If you have downloaded the `cloudygame` branch of our Unreal Engine fork, this step can be skipped. Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
 
 Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
 
@@ -147,8 +172,10 @@ Module to provide network API for communication to the CloudyWeb server.
 - It is assumed that you have the CloudyGamePlugin successfully installed. If not, please read the setup instructions at the top of this readme.
   
 - Add the following system environment variables
-  - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values. Do not use a semicolon (`;`) in the username or password.
+  - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values. Do not use a semicolon (`;`) in the username or password. 
+    - The robot user has to be an administrator in CloudyWeb. Do this by creating a super user (instructions in the CloudyWeb repository).
   - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
+    - To test the deployment locally, you can use `http://127.0.0.1:8000` as the value.
   
 ## Usage
 - In the .cpp file where you want to use any public functions in this module: 
