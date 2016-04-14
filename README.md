@@ -12,6 +12,15 @@ This plugin contains 5 modules:
 
 ## Plugin Setup
 
+We assume that you are using our Unreal Engine fork of the source code, and have successfully built and compiled the engine. If not, please refer to the Unreal Engine fork [here](https://github.com/insert-coin/UnrealEngine).
+
+0. You should have one Unreal Engine game project created. To do this, open the Unreal Engine executable which can be found at `UnrealEngine\Engine\Binaries\Win64`. Launch `UE4Editor.exe`. 
+  - If this is your first run, you should see a window to create a game. Ensure that the circled parts are selected correctly.
+  - We recommended using the "First Person" template, but you are free to use others (except "Basic Code").
+  - If your computer has a weak GPU, you can reduce the graphical quality of the game (3rd circle from the top, middle square button).
+  - Please remember the location and name of the project.
+  - ![Create Game](http://i.imgur.com/kj8HO4K.png)
+
 1. In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
 
   Your game directory structure should look similar to this (assuming the name of your game is MyProject):
@@ -44,7 +53,7 @@ This plugin contains 5 modules:
 
 3. Modify Unreal Engine. If you have downloaded the `cloudygame` branch of our Unreal Engine fork, this step can be skipped. 
   
-  Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
+  Go to `UGameViewportClient.cpp` and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
   
   Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
   
@@ -55,6 +64,15 @@ This plugin contains 5 modules:
     - The robot user has to be an administrator in CloudyWeb. Do this by creating a super user (instructions in the CloudyWeb repository).
   - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
     - To test the deployment locally, you can use `http://127.0.0.1:8000` as the value.
+
+5. Compile Unreal Engine with the plugins. Go to your game project folder, and right click the `.uproject` file. Click "Generate Visual Studio project files". 
+
+  ![Right click .uproject](http://i.imgur.com/ou3xukU.png)
+  
+  Once done, open the `.sln` file. Then, in the solution explorer, you should see 3 folders: Engine, Games, Programs. Expand the "Games" folder, right-click your game project, and click "Build". 
+  ![Build](http://i.imgur.com/6yGUQud.png)
+
+6. If you are installing this plugin as a user, then you are good to go. The information after this step is for game developers. To run the game, double click on the `.uproject` file from the previous step. You can also right-click the `.uproject` file and click on "Launch game" to run it without the Unreal Engine interface.
 
 # CloudyPlayerManager
 ## Usage
