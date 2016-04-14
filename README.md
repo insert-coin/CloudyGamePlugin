@@ -23,7 +23,7 @@ We assume that you are using our Unreal Engine fork of the source code, and have
   - If you do not see the above window, then the engine has launched with a previously made game.
     - Click on "File", then click on "New Project". You can now continue with the steps above.
 
-1. In your game folder, create a folder named 'Plugins' if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game. The plugin should show up in Menu > Edit > Plugins.
+1. In your game folder, create a folder named "Plugins" if it doesn't exist. Put CloudyGamePlugin in your Plugins folder. Build and run your game (details in step 6). The plugin should show up in Menu > Edit > Plugins.
 
   Your game directory structure should look similar to this (assuming the name of your game is MyProject):
   ```bash
@@ -49,7 +49,7 @@ We assume that you are using our Unreal Engine fork of the source code, and have
   ```
   Some folders may be missing if you have not compiled your project before.
 
-2. Download the precompiled FFmpeg build from [here](https://ffmpeg.zeranoe.com/builds/). Choose the static build. as the file is compressed using 7z, you may need to download 7zip [here](http://www.7-zip.org/download.html) to be able to unzip the downloaded file.
+2. Download the precompiled FFmpeg build from [here](https://ffmpeg.zeranoe.com/builds/). Choose the static build. As the file is compressed using 7z, you may need to download 7zip [here](http://www.7-zip.org/download.html) to be able to unzip the downloaded file.
 
   Put `ffmpeg.exe` into your `Unreal Engine\Engine\Binaries\Win64` folder. This is the Unreal Engine source code, not your game project.
 
