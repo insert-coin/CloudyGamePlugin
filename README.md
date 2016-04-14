@@ -38,10 +38,12 @@ This plugin contains 5 modules:
   ```
   Some folders may be missing if you have not compiled your project before.
 
-2. Download the precompiled FFmpeg build from [here](https://ffmpeg.zeranoe.com/builds/). Choose the static build.
-Put `ffmpeg.exe` into your `Unreal Engine\Engine\Binaries\Win64` folder. This is the Unreal Engine source code, not your game project.
+2. Download the precompiled FFmpeg build from [here](https://ffmpeg.zeranoe.com/builds/). Choose the static build. as the file is compressed using 7z, you may need to download 7zip [here](http://www.7-zip.org/download.html) to be able to unzip the downloaded file.
+
+  Put `ffmpeg.exe` into your `Unreal Engine\Engine\Binaries\Win64` folder. This is the Unreal Engine source code, not your game project.
 
 3. Modify Unreal Engine. If you have downloaded the `cloudygame` branch of our Unreal Engine fork, this step can be skipped. 
+  
   Go to UGameViewportClient.cpp and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
   
   Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
@@ -87,9 +89,6 @@ To quit game:
 
 Module for broadcasting the video stream.
 
-## Setup
-- We assume that the CloudyGamePlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
-
 ## Usage
 
 Open streams (in VLC, the Thin Client, or other media players) using the following addresses:
@@ -107,9 +106,6 @@ Player 3: `http://<your public IP>:30003`
 ## Description
 
 Module to provide customized save game and load game API. This API will allow the game developer to use our custom save/load game functions to upload the player's save game file to our cloud.
-
-## Setup
-- We assume that the CloudyGamePlugin has been successfully installed. If not, please read the setup instructions at the top of this readme.
 
 ## Usage
 - In `YourProject/Source/YourProject/YourProject.Build.cs`:
@@ -177,9 +173,6 @@ if (LoadGameInstance != NULL)
 
 Module to provide network API for communication to the CloudyWeb server.
 
-## Setup
-- It is assumed that you have the CloudyGamePlugin successfully installed. If not, please read the setup instructions at the top of this readme.
-  
 ## Usage
 - In the .cpp file where you want to use any public functions in this module: 
   - Ensure that `#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"` is included.
