@@ -74,7 +74,7 @@ We assume that you are using our Unreal Engine fork of the source code, and have
   Once done, open the `.sln` file. Then, in the solution explorer, you should see 3 folders: Engine, Games, Programs. Expand the "Games" folder, right-click your game project, and click "Build". 
   ![Build](http://i.imgur.com/6yGUQud.png)
 
-6. If you are installing this plugin as a user, then you are good to go. The information after this step is for game developers. To run the game, double click on the `.uproject` file from the previous step. You can also right-click the `.uproject` file and click on "Launch game" to run it without the Unreal Engine interface.
+6. If you are installing this plugin as a user, then you are good to go. The information after this step is for game developers. To run the game, double click on the `.uproject` file from the previous step. 
 
 # CloudyPlayerManager
 ## Usage
