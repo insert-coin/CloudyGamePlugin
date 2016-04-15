@@ -55,9 +55,9 @@ We assume that you are using our Unreal Engine fork of the source code, and have
 
 3. Modify Unreal Engine. If you have downloaded the `cloudygame` branch of our Unreal Engine fork, this step can be skipped. 
   
-  Go to `UGameViewportClient.cpp` and edit the function `UGameViewportClient::LayoutPlayers()`. Change SplitType to 4 player. To do this, edit the code as follows:
+  Go to `UGameViewportClient.cpp` (found at `UnrealEngine/Engine/Source/Runtime/Engine/Private/`) and edit the function `UGameViewportClient::LayoutPlayers()` at line 1587. Change SplitType to 4 player. To do this, edit the code as follows:
   
-  Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();`
+  Comment out this line: `const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();` (on line 1590)
   
   Add this line: `const ESplitScreenType::Type SplitType = ESplitScreenType::FourPlayer;`
 
