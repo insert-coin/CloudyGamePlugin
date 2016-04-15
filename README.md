@@ -64,7 +64,7 @@ We assume that you are using our Unreal Engine fork of the source code, and have
 4. Add the following system environment variables. To learn how to do this, visit this webpage [here](http://www.howtogeek.com/118594/how-to-edit-your-system-path-for-easy-command-line-access/).
   - Variable: `ROBOT_USER`. Value: `username; password`. Replace the username and password with the actual values. Do not use a semicolon (`;`) in the username or password. 
     - The robot user has to be an administrator in CloudyWeb. Do this by creating a super user (instructions in the [CloudyWeb repository](https://github.com/insert-coin/cloudyweb)).
-  - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual values.
+  - Variable: `CLOUDYWEB_URL`. Value: `http://url:port`. Replace the URL and port with the actual address where [CloudyWeb](https://github.com/insert-coin/cloudyweb) is deployed.
     - To test the deployment locally, you can use `http://127.0.0.1:8000` as the value.
 
 5. Compile Unreal Engine with the plugins. Go to your game project folder, and right click the `.uproject` file. Click "Generate Visual Studio project files". 
