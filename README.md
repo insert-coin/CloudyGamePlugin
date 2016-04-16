@@ -74,7 +74,12 @@ We assume that you are using our Unreal Engine fork of the source code, and have
   Once done, open the `.sln` file. Then, in the solution explorer, you should see 3 folders: Engine, Games, Programs. Expand the "Games" folder, right-click your game project, and click "Build". 
   ![Build](http://i.imgur.com/6yGUQud.png)
 
-6. If you are installing this plugin as a user, then you are good to go. The information after this step is for game developers. To run the game, double click on the `.uproject` file from the previous step. 
+6. To run the game, double click on the `.uproject` file mentioned in the previous step.
+
+7. When Unreal Engine has launched, go to "Edit", "Editor Preferences". In the window that appears, click on "Miscellaneous" on the left that is under the "General" section. Under "Performance" on the right, uncheck the box that says "Use less CPU when in Background".
+  ![Disable CPU Throttling](http://i.imgur.com/ptKvS4U.png)
+
+8. If you are installing this plugin as a user, then you are good to go. The information after this step is for game developers. 
 
 # CloudyPlayerManager
 ## Usage
