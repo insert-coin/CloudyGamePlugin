@@ -3,9 +3,9 @@
 #include "Http.h"
 #include "Networking.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(CloudyWebAPILog, Log, All)
+DECLARE_LOG_CATEGORY_EXTERN(CloudyWebConnectorLog, Log, All)
  
-class CloudyWebAPIImpl : public ICloudyWebAPI
+class CloudyWebConnectorImpl : public ICloudyWebConnector
 {
 public:
     // These public functions are accessible outside this plugin module:

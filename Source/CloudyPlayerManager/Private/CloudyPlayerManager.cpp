@@ -3,7 +3,7 @@
 #include "CloudyPlayerManagerPrivatePCH.h"
 #include "CloudyPlayerManager.h"
 #include "../../CloudyStream/Public/CloudyStream.h"
-#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"
+#include "../../CloudyWebConnector/Public/ICloudyWebConnector.h"
 
 
 #include <stdio.h>
@@ -104,7 +104,7 @@ bool CCloudyPlayerManagerModule::RemovePlayer(int32 ControllerId, int32 GameSess
 		int32 GameSessionId = GameSessionIdMapping[ControllerId];
 		FString GameSessionString = DELETE_URL + FString::FromInt(GameSessionId) + "/";
 		UE_LOG(ModuleLog, Warning, TEXT("Game Session string: %s"), *GameSessionString);
-		Success = ICloudyWebAPI::Get().MakeRequest(GameSessionString, DELETE_REQUEST);
+		Success = ICloudyWebConnector::Get().MakeRequest(GameSessionString, DELETE_REQUEST);
 
 		// check for successful removal from server before removing
 		if (Success)

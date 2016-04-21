@@ -1,7 +1,7 @@
 #include "CloudySaveManagerPrivatePCH.h"
  
 #include "CloudySaveManager.h"
-#include "../../CloudyWebAPI/Public/ICloudyWebAPI.h"
+#include "../../CloudyWebConnector/Public/ICloudyWebConnector.h"
 
 #include "PlatformFeatures.h"
 #include "GameFramework/SaveGame.h"
@@ -63,7 +63,7 @@ bool CloudySaveManagerImpl::Cloudy_SaveGameToSlot(USaveGame* SaveGameObject, con
         // Stuff that data into the save system with the desired file name
         SaveSystem->SaveGame(false, *NewSlotName, UserIndex, ObjectBytes);
 
-        bSuccess = ICloudyWebAPI::Get().UploadFile(NewSlotName, PCID);
+        bSuccess = ICloudyWebConnector::Get().UploadFile(NewSlotName, PCID);
     }
 
     return bSuccess;
@@ -74,7 +74,7 @@ USaveGame* CloudySaveManagerImpl::Cloudy_LoadGameFromSlot(const FString& SlotNam
                                                           const int32 PCID)
 {
     // Load from CloudyWeb, write it to default save location.
-    bool LoadedSuccessfully = ICloudyWebAPI::Get().DownloadFile(SlotName, PCID);
+    bool LoadedSuccessfully = ICloudyWebConnector::Get().DownloadFile(SlotName, PCID);
 
     // Appends the player controller ID to the save file, 
     // so that the split screen players do not overwrite 1 save file.

@@ -1,6 +1,6 @@
-#include "CloudyWebAPIPrivatePCH.h"
+#include "CloudyWebConnectorPrivatePCH.h"
  
-#include "CloudyWebAPI.h"
+#include "CloudyWebConnector.h"
 
 #include "PlatformFeatures.h"
 #include "HttpRequestAdapter.h"
@@ -15,7 +15,7 @@
 #define ENV_VAR_CLOUDYWEB_URL "CLOUDYWEB_URL"
 #define ENV_VAR_ROBOT_USER "ROBOT_USER"
 
-DEFINE_LOG_CATEGORY(CloudyWebAPILog);
+DEFINE_LOG_CATEGORY(CloudyWebConnectorLog);
 
 #define SERVER_NAME "Listener"
 #define SERVER_ENDPOINT FIPv4Endpoint(FIPv4Address(0, 0, 0, 0), 55556)
@@ -39,9 +39,9 @@ std::string get_env_var(std::string const & key);
 
 // Automatically starts when UE4 is started.
 // Populates the Token variable with the robot user's token.
-void CloudyWebAPIImpl::StartupModule()
+void CloudyWebConnectorImpl::StartupModule()
 {
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI started"));
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("CloudyWebConnector started"));
 
     // Initialize the array with InitialArraySize
     SaveFileUrls.SetNumUninitialized(InitialArraySize);
@@ -62,9 +62,9 @@ void CloudyWebAPIImpl::StartupModule()
     ListenSocket->SetReceiveBufferSize(BUFFER_SIZE, NewSize);
 
     TcpListener = new FTcpListener(*ListenSocket, CONNECTION_THREAD_TIME);
-    TcpListener->OnConnectionAccepted().BindRaw(this, &CloudyWebAPIImpl::InputHandler);
+    TcpListener->OnConnectionAccepted().BindRaw(this, &CloudyWebConnectorImpl::InputHandler);
 
-    FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyWebAPIImpl::CheckConnection), CONNECTION_THREAD_TIME);
+    FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyWebConnectorImpl::CheckConnection), CONNECTION_THREAD_TIME);
 
 
     // initialise class variables
@@ -74,9 +74,9 @@ void CloudyWebAPIImpl::StartupModule()
 }
 
 // Automatically starts when UE4 is closed
-void CloudyWebAPIImpl::ShutdownModule()
+void CloudyWebConnectorImpl::ShutdownModule()
 {
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("CloudyWebAPI stopped"));
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("CloudyWebConnector stopped"));
     delete TcpListener;
     ListenSocket->Close();
 }
@@ -129,7 +129,7 @@ std::string get_env_var(std::string const & key) {
 *
 * @return Returns true if the authentication was successful. Else, returns false.
 */
-bool CloudyWebAPIImpl::AttemptAuthentication()
+bool CloudyWebConnectorImpl::AttemptAuthentication()
 {
     bool RequestSuccess = false;
 
@@ -137,7 +137,7 @@ bool CloudyWebAPIImpl::AttemptAuthentication()
     FString Password;
     FString value = get_env_var(ENV_VAR_ROBOT_USER).c_str();
     value.Split(";", &Username, &Password);
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("RobotUserName = %s, RobotPassword = %s"), 
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("RobotUserName = %s, RobotPassword = %s"), 
            *Username.Trim(), *Password.Trim());
 
     FString Url = BaseUrl + AuthUrl; // "http://127.0.0.1:8000/api-token-auth/";
@@ -155,10 +155,10 @@ bool CloudyWebAPIImpl::AttemptAuthentication()
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb(TEXT("POST"));
     HttpRequest->SetContentAsString(ContentString);
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebAPIImpl::OnAuthResponseComplete);
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebConnectorImpl::OnAuthResponseComplete);
     RequestSuccess = HttpRequest->ProcessRequest();
 
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("URL = %s"), *Url);
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("URL = %s"), *Url);
 
     return RequestSuccess;
 }
@@ -172,7 +172,7 @@ bool CloudyWebAPIImpl::AttemptAuthentication()
 * @return Returns true if the file upload was successful. Else, returns false.
 *
 */
-bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
+bool CloudyWebConnectorImpl::UploadFile(FString Filename, int32 PlayerControllerId)
 {
     bool RequestSuccess = false;
 
@@ -206,7 +206,7 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
 
     if (GetGameId() == -1 || Username.Equals("") || PlayerControllerId < 0)
     {
-        UE_LOG(CloudyWebAPILog, Error, TEXT("The game ID, username, or player controller ID is invalid"));
+        UE_LOG(CloudyWebConnectorLog, Error, TEXT("The game ID, username, or player controller ID is invalid"));
         return false;
     }
     
@@ -271,7 +271,7 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
         /* free slist */
         curl_slist_free_all(headerlist);
     
-        UE_LOG(CloudyWebAPILog, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
+        UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
         ReadAndStoreSaveFileURL(readBuffer.c_str(), PlayerControllerId);
     }
 
@@ -288,7 +288,7 @@ bool CloudyWebAPIImpl::UploadFile(FString Filename, int32 PlayerControllerId)
 * @return Returns true if the file download was successful. Else, returns false.
 *
 */
-bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
+bool CloudyWebConnectorImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 {
     CURL *curl;
     FILE *fp;
@@ -299,7 +299,7 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
     if (GetGameId() == -1 || GetUsername(PlayerControllerId).Equals("") || 
         PlayerControllerId < 0 || SaveFileUrls.Num() <= PlayerControllerId)
     {
-        UE_LOG(CloudyWebAPILog, Error, TEXT("The game ID, username, or player controller ID is invalid"));
+        UE_LOG(CloudyWebConnectorLog, Error, TEXT("The game ID, username, or player controller ID is invalid"));
         return false;
     }
     
@@ -312,7 +312,7 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 
     if (!SaveFileUrlsData[PlayerControllerId].Equals(""))
     {
-        UE_LOG(CloudyWebAPILog, Log, TEXT("File URL obtained! Writing to disk."));
+        UE_LOG(CloudyWebConnectorLog, Log, TEXT("File URL obtained! Writing to disk."));
         
         SaveFileURLCString = TCHAR_TO_UTF8(*SaveFileUrlsData[PlayerControllerId]);
         
@@ -335,14 +335,14 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
             }
             else
             {
-                UE_LOG(CloudyWebAPILog, Error, TEXT("Could not create save file!"));
+                UE_LOG(CloudyWebConnectorLog, Error, TEXT("Could not create save file!"));
             }
         }
         return true;
     }
     else
     {
-        UE_LOG(CloudyWebAPILog, Warning, TEXT("There was no save file URL!"));
+        UE_LOG(CloudyWebConnectorLog, Warning, TEXT("There was no save file URL!"));
 
         return false;
     }
@@ -357,7 +357,7 @@ bool CloudyWebAPIImpl::DownloadFile(FString Filename, int32 PlayerControllerId)
 *
 *
 */
-void CloudyWebAPIImpl::GetSaveFileUrl(int32 GameId, FString Username, int32 PlayerControllerId)
+void CloudyWebConnectorImpl::GetSaveFileUrl(int32 GameId, FString Username, int32 PlayerControllerId)
 {
     CURLcode ret;
     CURL *hnd;
@@ -394,7 +394,7 @@ void CloudyWebAPIImpl::GetSaveFileUrl(int32 GameId, FString Username, int32 Play
     curl_slist_free_all(slist1);
     slist1 = NULL;
     
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Response data: %s"), UTF8_TO_TCHAR(readBuffer.c_str()));
     ReadAndStoreSaveFileURL(UTF8_TO_TCHAR(readBuffer.c_str()), PlayerControllerId);
 }
 
@@ -406,7 +406,7 @@ void CloudyWebAPIImpl::GetSaveFileUrl(int32 GameId, FString Username, int32 Play
 * @param PlayerControllerId      Player controller ID of the player who is saving the file
 *
 */
-void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId)
+void CloudyWebConnectorImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerControllerId)
 {
     JsonString = JsonString.Replace(TEXT("["), TEXT(""));
     JsonString = JsonString.Replace(TEXT("]"), TEXT(""));
@@ -422,12 +422,12 @@ void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerC
     }
     if (JsonObject->HasField("saved_file"))
     {
-        UE_LOG(CloudyWebAPILog, Error, TEXT("Json saved_file field found."));
+        UE_LOG(CloudyWebConnectorLog, Error, TEXT("Json saved_file field found."));
         SaveFileUrls.Insert(JsonObject->GetStringField("saved_file"), PlayerControllerId);
     }
     else
     {
-        UE_LOG(CloudyWebAPILog, Error, TEXT("Json saved_file field NOT found."));
+        UE_LOG(CloudyWebConnectorLog, Error, TEXT("Json saved_file field NOT found."));
         SaveFileUrls.Insert("", PlayerControllerId);
     }
 }
@@ -441,16 +441,16 @@ void CloudyWebAPIImpl::ReadAndStoreSaveFileURL(FString JsonString, int32 PlayerC
 * @param bWasSuccessful     Contains true if the request was successful. Else it contains false.
 *
 */
-void CloudyWebAPIImpl::OnAuthResponseComplete(FHttpRequestPtr Request, 
+void CloudyWebConnectorImpl::OnAuthResponseComplete(FHttpRequestPtr Request, 
                                               FHttpResponsePtr Response, bool bWasSuccessful)
 {
     if (bWasSuccessful)
     {
-        UE_LOG(CloudyWebAPILog, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
+        UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
 
         if (!Response.IsValid())
         {
-            UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed!"));
+            UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Request failed!"));
         }
         else if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
         {
@@ -459,12 +459,12 @@ void CloudyWebAPIImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
             FJsonSerializer::Deserialize(JsonReader, JsonObject);
 
             Token = JsonObject->GetStringField("token");
-            UE_LOG(CloudyWebAPILog, Warning, TEXT("Token = %s"), *Token);
+            UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Token = %s"), *Token);
         }
     }
     else 
     {
-        UE_LOG(CloudyWebAPILog, Error, TEXT("Request failed! Is the server up?"));
+        UE_LOG(CloudyWebConnectorLog, Error, TEXT("Request failed! Is the server up?"));
     }
 }
 
@@ -479,13 +479,13 @@ void CloudyWebAPIImpl::OnAuthResponseComplete(FHttpRequestPtr Request,
 * @return Whether the request was successful or not
 *
 */
-bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
+bool CloudyWebConnectorImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
 {
     FString Url = BaseUrl + ResourceUrl;
     HttpResponse = "";
     
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("Resource Url: %s"), *Url);
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("Request method: %s"), *RequestMethod);
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Resource Url: %s"), *Url);
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Request method: %s"), *RequestMethod);
 
 
     // use token to get resource from CloudyWeb
@@ -494,9 +494,9 @@ bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
     HttpRequest->SetHeader(TEXT("Authorization"), AuthHeader);
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb(RequestMethod);
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebAPIImpl::OnGetResponseComplete);
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &CloudyWebConnectorImpl::OnGetResponseComplete);
     
-    UE_LOG(CloudyWebAPILog, Warning, TEXT("Auth header: %s"), *AuthHeader);
+    UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Auth header: %s"), *AuthHeader);
 
     return HttpRequest->ProcessRequest();
 
@@ -508,7 +508,7 @@ bool CloudyWebAPIImpl::MakeRequest(FString ResourceUrl, FString RequestMethod)
 * @return The response from the HTTP request from MakeRequest
 *
 */
-FString CloudyWebAPIImpl::GetResponse()
+FString CloudyWebConnectorImpl::GetResponse()
 {
     return HttpResponse;
 }
@@ -521,12 +521,12 @@ FString CloudyWebAPIImpl::GetResponse()
 * @param bWasSuccessful     Contains true if the request was successful. Else it contains false.
 *
 */
-void CloudyWebAPIImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void CloudyWebConnectorImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 
     if (bWasSuccessful)
     {
-        UE_LOG(CloudyWebAPILog, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
+        UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Response Code = %d"), Response->GetResponseCode());
     
         if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
         {
@@ -534,12 +534,12 @@ void CloudyWebAPIImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpRespo
         }
         else
         {
-            UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Response invalid"));
+            UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Request failed! Response invalid"));
         }
     }
     else
     {
-        UE_LOG(CloudyWebAPILog, Warning, TEXT("Request failed! Is the server up?"));
+        UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Request failed! Is the server up?"));
     }
 
 }
@@ -550,10 +550,10 @@ void CloudyWebAPIImpl::OnGetResponseComplete(FHttpRequestPtr Request, FHttpRespo
 * @param InputStr Input string to parse
 * @return Whether parsing was successful or not
 */
-bool CloudyWebAPIImpl::GetCloudyWebData(FString InputStr)
+bool CloudyWebConnectorImpl::GetCloudyWebData(FString InputStr)
 {
     bool isSuccessful = false;
-    UE_LOG(CloudyWebAPILog, Error, TEXT("Input String = %s"), *InputStr);
+    UE_LOG(CloudyWebConnectorLog, Error, TEXT("Input String = %s"), *InputStr);
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
     TSharedRef<TJsonReader<TCHAR>>JsonReader = TJsonReaderFactory<TCHAR>::Create(InputStr);
@@ -593,16 +593,16 @@ bool CloudyWebAPIImpl::GetCloudyWebData(FString InputStr)
 *
 * @param DeltaTime Time taken by method
 */
-bool CloudyWebAPIImpl::CheckConnection(float DeltaTime)
+bool CloudyWebConnectorImpl::CheckConnection(float DeltaTime)
 {
     bool Success = false;
     if (HasInputStrChanged) 
     {
         if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
         {
-            UE_LOG(CloudyWebAPILog, Warning, TEXT("Success! input str: %s"), *InputStr);
+            UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Success! input str: %s"), *InputStr);
             GetCloudyWebData(InputStr);
-            UE_LOG(CloudyWebAPILog, Warning, TEXT("Success! Controllerid: %d command: %s"), ControllerId, *Command);
+            UE_LOG(CloudyWebConnectorLog, Warning, TEXT("Success! Controllerid: %d command: %s"), ControllerId, *Command);
             Success = CCloudyPlayerManagerModule::Get().ExecuteCommand(Command, ControllerId, StreamingPort, StreamingIP, GameSessionId);
             InputStr = "";
             HasInputStrChanged = false;
@@ -629,7 +629,7 @@ bool CloudyWebAPIImpl::CheckConnection(float DeltaTime)
 * @param Socket The TCP socket used to send the message
 * @param Msg The message to be sent
 */
-bool CloudyWebAPIImpl::SendToClient(FSocket* Socket, FString Msg)
+bool CloudyWebConnectorImpl::SendToClient(FSocket* Socket, FString Msg)
 {
     TCHAR *serialisedChar = Msg.GetCharArray().GetData();
     int32 size = FCString::Strlen(serialisedChar);
@@ -645,7 +645,7 @@ bool CloudyWebAPIImpl::SendToClient(FSocket* Socket, FString Msg)
 * @param ConnectionSocket The TCP socket connecting the listener and client
 * @param Endpoint The endpoint of the socket connection
 */
-bool CloudyWebAPIImpl::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint)
+bool CloudyWebConnectorImpl::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoint& Endpoint)
 {
 
     TArray<uint8> ReceivedData;
@@ -671,7 +671,7 @@ bool CloudyWebAPIImpl::InputHandler(FSocket* ConnectionSocket, const FIPv4Endpoi
 }
 
 // Accessor for GameId. Returns -1 if GameId has not been sent
-int32 CloudyWebAPIImpl::GetGameId()
+int32 CloudyWebConnectorImpl::GetGameId()
 {
     if (GameId > 0)
         return GameId;
@@ -681,7 +681,7 @@ int32 CloudyWebAPIImpl::GetGameId()
 
 // Accessor for username by controller ID. Returns empty string if
 // this controller id does not belong to any user
-FString CloudyWebAPIImpl::GetUsername(int32 ControllerId)
+FString CloudyWebConnectorImpl::GetUsername(int32 ControllerId)
 {
     if (UsernameList.IsValidIndex(ControllerId))
     {
@@ -697,11 +697,11 @@ FString CloudyWebAPIImpl::GetUsername(int32 ControllerId)
 
 //Rama's String From Binary Array
 //This function requires #include <string>
-FString CloudyWebAPIImpl::StringFromBinaryArray(const TArray<uint8>& BinaryArray)
+FString CloudyWebConnectorImpl::StringFromBinaryArray(const TArray<uint8>& BinaryArray)
 {
     //Create a string from a byte array!
     std::string cstr(reinterpret_cast<const char*>(BinaryArray.GetData()), BinaryArray.Num());
     return FString(cstr.c_str());
 }
  
-IMPLEMENT_MODULE(CloudyWebAPIImpl, CloudyWebAPI)
+IMPLEMENT_MODULE(CloudyWebConnectorImpl, CloudyWebConnector)
