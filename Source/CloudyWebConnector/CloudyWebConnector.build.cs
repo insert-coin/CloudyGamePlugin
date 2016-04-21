@@ -1,18 +1,18 @@
 using UnrealBuildTool;
 using System.IO;
  
-public class CloudyWebAPI : ModuleRules
+public class CloudyWebConnector : ModuleRules
 {
-    public CloudyWebAPI(TargetInfo Target)
+    public CloudyWebConnector(TargetInfo Target)
     {
         PrivateIncludePaths.AddRange(
             new string[] {
-                "CloudyWebAPI/Private",
+                "CloudyWebConnector/Private",
             }
         );
         PublicIncludePaths.AddRange(
             new string[] { 
-                "CloudyWebAPI/Public",
+                "CloudyWebConnector/Public",
             }
         );
 

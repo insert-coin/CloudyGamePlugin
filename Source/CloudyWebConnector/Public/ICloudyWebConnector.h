@@ -7,7 +7,7 @@
 * The public interface to this module.  In most cases, this interface is only public to sibling modules
 * within this plugin.
 */
-class ICloudyWebAPI : public IModuleInterface
+class ICloudyWebConnector : public IModuleInterface
 {
  
 public:
@@ -18,9 +18,9 @@ public:
     *
     * @return Returns singleton instance, loading the module on demand if needed
     */
-    static inline ICloudyWebAPI& Get()
+    static inline ICloudyWebConnector& Get()
     {
-        return FModuleManager::LoadModuleChecked< ICloudyWebAPI >("CloudyWebAPI");
+        return FModuleManager::LoadModuleChecked< ICloudyWebConnector >("CloudyWebConnector");
     }
  
     /**
@@ -30,7 +30,7 @@ public:
     */
     static inline bool IsAvailable()
     {
-        return FModuleManager::Get().IsModuleLoaded("CloudyWebAPI");
+        return FModuleManager::Get().IsModuleLoaded("CloudyWebConnector");
     }
 
     /**
