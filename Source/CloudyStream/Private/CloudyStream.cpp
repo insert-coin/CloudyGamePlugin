@@ -57,7 +57,7 @@ void CloudyStreamImpl::SetUpVideoCapture() {
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
 	sizeX = ReadingViewport->GetSizeXY().X;
 	sizeY = ReadingViewport->GetSizeXY().Y;
-	halfSizeX = sizeX / 2;
+	halfSizeX = sizeX / 3;
 	halfSizeY = sizeY / 2;
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
 
