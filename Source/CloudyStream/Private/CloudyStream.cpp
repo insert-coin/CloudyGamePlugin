@@ -12,8 +12,8 @@
 
 // Layout of the split screen. Ensure that this is same as the values in GameViewportClient.cpp line 120~
 #define MAX_NUM_PLAYERS 6
-#define NUM_ROWS 2
-#define NUM_COLS 3
+#define NUM_ROWS 2.0
+#define NUM_COLS 3.0
 
 DEFINE_LOG_CATEGORY(CloudyStreamLog)
 
@@ -46,7 +46,7 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 
     UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming port: %d"), StreamingPort);
 
-    *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncrement << "x" << RowIncrement << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
+    *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncInt << "x" << RowIncInt << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
 	// add frame buffer for new player
@@ -72,6 +72,9 @@ void CloudyStreamImpl::SetUpVideoCapture() {
     RowIncrement = sizeY / NUM_ROWS;
     ColIncrement = sizeX / NUM_COLS;
 
+    RowIncInt = sizeY / (int)NUM_ROWS;
+    ColIncInt = sizeX / (int)NUM_COLS;
+
     UE_LOG(CloudyStreamLog, Warning, TEXT("RowIncrement: %f ColIncrement: %f"), RowIncrement, ColIncrement);
 
     UE_LOG(CloudyStreamLog, Warning, TEXT("ScreenList size: %d"), ScreenList.Num());
@@ -81,7 +84,7 @@ void CloudyStreamImpl::SetUpVideoCapture() {
         for (float k = 0.0f; k < sizeX; k += ColIncrement)
         {
             // FIntRect(TopLeftX, TopLeftY, BottomRightX, BottomRightY)
-            ScreenList.Add(FIntRect(k, i, k + ColIncrement, i + RowIncrement));
+            ScreenList.Add(FIntRect(k, i, k + ColIncInt, i + RowIncInt));
             UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: k: %f i: %f"), k, i);
         }
     }
@@ -148,7 +151,7 @@ void CloudyStreamImpl::StreamFrameToClient() {
 			PixelBuffer[j] = Pixel.DWColor();
 		}
 
-        fwrite(PixelBuffer, ColIncrement * PIXEL_SIZE, RowIncrement, VideoPipeList[i]);
+        fwrite(PixelBuffer, ColIncInt * PIXEL_SIZE, RowIncInt, VideoPipeList[i]);
 	}
 	delete[]PixelBuffer;
 }

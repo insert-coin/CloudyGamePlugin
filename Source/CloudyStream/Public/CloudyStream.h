@@ -98,10 +98,13 @@ public:
 	bool isEngineRunning;
 	int sizeX, sizeY;
     float RowIncrement, ColIncrement;
+    int RowIncInt, ColIncInt;
 	TArray<int> PlayerFrameMapping; // index is frame index, value is controller ID
     TArray<FIntRect> ScreenList;
 	FIntRect Screen1, Screen2, Screen3, Screen4;
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
+
+    
 
     int OneCounter = 0;
 };
