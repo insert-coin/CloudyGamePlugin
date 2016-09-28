@@ -98,6 +98,7 @@ public:
 	bool isEngineRunning;
 	int sizeX, sizeY, halfSizeX, halfSizeY;
 	TArray<int> PlayerFrameMapping; // index is frame index, value is controller ID
+    TArray<FIntRect> ScreenList;
 	FIntRect Screen1, Screen2, Screen3, Screen4;
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
 

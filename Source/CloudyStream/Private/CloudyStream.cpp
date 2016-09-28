@@ -10,12 +10,16 @@
 #define PIXEL_SIZE 4
 #define FPS 30 // frames per second
 
+// Layout of the split screen. Ensure that this is same as the values in GameViewportClient.cpp line 120~
+#define MAX_NUM_PLAYERS 6
+#define NUM_ROWS 2
+#define NUM_COLS 3
 
 DEFINE_LOG_CATEGORY(CloudyStreamLog)
 
 void CloudyStreamImpl::StartupModule()
 {
-
+    ensure(MAX_NUM_PLAYERS == NUM_ROWS * NUM_COLS);
 	// timer to capture frames
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyStreamImpl::CaptureFrame), 1.0 / FPS);
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming module started"));
@@ -57,15 +61,39 @@ void CloudyStreamImpl::SetUpVideoCapture() {
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
 	sizeX = ReadingViewport->GetSizeXY().X;
 	sizeY = ReadingViewport->GetSizeXY().Y;
-	halfSizeX = sizeX / 3;
-	halfSizeY = sizeY / 2;
-	UE_LOG(CloudyStreamLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
 
+    UE_LOG(CloudyStreamLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
+
+    float RowIncrement = sizeY / NUM_ROWS;
+    float ColIncrement = sizeX / NUM_COLS;
+
+    halfSizeX = sizeX / NUM_COLS;
+    halfSizeY = sizeY / NUM_ROWS;
+
+    for (float i = 0.0f; i < sizeY; i += RowIncrement)
+    {
+        for (float k = 0.0f; k < sizeX; k += ColIncrement)
+        {
+            // FIntRect(TopLeftX, TopLeftY, BottomRightX, BottomRightY)
+            ScreenList.Add(FIntRect(k, i, k + ColIncrement, i + RowIncrement));
+            UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: i: %f k: %f"), k, i);
+        }
+    }
+
+    //ScreenList.Add(FIntRect(0, 0, ColIncrement, RowIncrement)); // 1
+    //ScreenList.Add(FIntRect(ColIncrement, 0, ColIncrement*2, RowIncrement)); // 2
+    //ScreenList.Add(FIntRect(ColIncrement*2, 0, ColIncrement*3, RowIncrement)); // 3
+    //
+    //ScreenList.Add(FIntRect(0, RowIncrement, ColIncrement, RowIncrement*2)); // 4
+    //ScreenList.Add(FIntRect(ColIncrement, RowIncrement, ColIncrement*2, RowIncrement*2)); // 5
+    //ScreenList.Add(FIntRect(ColIncrement*2, RowIncrement, ColIncrement*3, RowIncrement*2)); // 6
+	
+	
 	// set up split screen info
-	Screen1 = FIntRect(0, 0, halfSizeX, halfSizeY);
-	Screen2 = FIntRect(halfSizeX, 0, sizeX, halfSizeY);
-	Screen3 = FIntRect(0, halfSizeY, halfSizeX, sizeY);
-	Screen4 = FIntRect(halfSizeX, halfSizeY, sizeX, sizeY);
+	//Screen1 = FIntRect(0, 0, halfSizeX, halfSizeY);
+	//Screen2 = FIntRect(halfSizeX, 0, sizeX, halfSizeY);
+	//Screen3 = FIntRect(0, halfSizeY, halfSizeX, sizeY);
+	//Screen4 = FIntRect(halfSizeX, halfSizeY, sizeX, sizeY);
 	flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm, ECubeFace::CubeFace_NegX);
 
 }
@@ -136,14 +164,19 @@ void CloudyStreamImpl::Split4Player() {
 
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
 
-	if (NumberOfPlayers > 0)
-		ReadingViewport->ReadPixels(FrameBufferList[0], flags, Screen1);
+   //for (int i = 0; i < NumberOfPlayers; i++)
+   //{
+   //    ReadingViewport->ReadPixels(FrameBufferList[i], flags, ScreenList[i]);
+   //}
+
+    if (NumberOfPlayers > 0)
+        ReadingViewport->ReadPixels(FrameBufferList[0], flags, ScreenList[0]);
 	if (NumberOfPlayers > 1)
-		ReadingViewport->ReadPixels(FrameBufferList[1], flags, Screen2);
+        ReadingViewport->ReadPixels(FrameBufferList[1], flags, ScreenList[1]);
 	if (NumberOfPlayers > 2)
-		ReadingViewport->ReadPixels(FrameBufferList[2], flags, Screen3);
+        ReadingViewport->ReadPixels(FrameBufferList[2], flags, ScreenList[2]);
 	if (NumberOfPlayers > 3)
-		ReadingViewport->ReadPixels(FrameBufferList[3], flags, Screen4);
+        ReadingViewport->ReadPixels(FrameBufferList[3], flags, ScreenList[3]);
 
 }
 
