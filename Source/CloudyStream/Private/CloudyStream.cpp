@@ -20,6 +20,7 @@ DEFINE_LOG_CATEGORY(CloudyStreamLog)
 void CloudyStreamImpl::StartupModule()
 {
     ensure(MAX_NUM_PLAYERS == NUM_ROWS * NUM_COLS);
+
 	// timer to capture frames
 	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyStreamImpl::CaptureFrame), 1.0 / FPS);
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming module started"));
@@ -42,8 +43,10 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 	std::stringstream *StringStream = new std::stringstream();
 
 	std::string StreamingIPString(TCHAR_TO_UTF8(*StreamingIP)); // convert to std::string
-	
-	*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << halfSizeX << "x" << halfSizeY << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
+
+    UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming port: %d"), StreamingPort);
+
+    *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncrement << "x" << RowIncrement << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
 	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
 
 	// add frame buffer for new player
@@ -57,6 +60,8 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 
 void CloudyStreamImpl::SetUpVideoCapture() {
 
+    ScreenList.Empty();
+
 	// init frame dimension variables
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
 	sizeX = ReadingViewport->GetSizeXY().X;
@@ -64,11 +69,12 @@ void CloudyStreamImpl::SetUpVideoCapture() {
 
     UE_LOG(CloudyStreamLog, Warning, TEXT("Height: %d Width: %d"), sizeY, sizeX);
 
-    float RowIncrement = sizeY / NUM_ROWS;
-    float ColIncrement = sizeX / NUM_COLS;
+    RowIncrement = sizeY / NUM_ROWS;
+    ColIncrement = sizeX / NUM_COLS;
 
-    halfSizeX = sizeX / NUM_COLS;
-    halfSizeY = sizeY / NUM_ROWS;
+    UE_LOG(CloudyStreamLog, Warning, TEXT("RowIncrement: %f ColIncrement: %f"), RowIncrement, ColIncrement);
+
+    UE_LOG(CloudyStreamLog, Warning, TEXT("ScreenList size: %d"), ScreenList.Num());
 
     for (float i = 0.0f; i < sizeY; i += RowIncrement)
     {
@@ -76,24 +82,12 @@ void CloudyStreamImpl::SetUpVideoCapture() {
         {
             // FIntRect(TopLeftX, TopLeftY, BottomRightX, BottomRightY)
             ScreenList.Add(FIntRect(k, i, k + ColIncrement, i + RowIncrement));
-            UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: i: %f k: %f"), k, i);
+            UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: k: %f i: %f"), k, i);
         }
     }
 
-    //ScreenList.Add(FIntRect(0, 0, ColIncrement, RowIncrement)); // 1
-    //ScreenList.Add(FIntRect(ColIncrement, 0, ColIncrement*2, RowIncrement)); // 2
-    //ScreenList.Add(FIntRect(ColIncrement*2, 0, ColIncrement*3, RowIncrement)); // 3
-    //
-    //ScreenList.Add(FIntRect(0, RowIncrement, ColIncrement, RowIncrement*2)); // 4
-    //ScreenList.Add(FIntRect(ColIncrement, RowIncrement, ColIncrement*2, RowIncrement*2)); // 5
-    //ScreenList.Add(FIntRect(ColIncrement*2, RowIncrement, ColIncrement*3, RowIncrement*2)); // 6
-	
-	
-	// set up split screen info
-	//Screen1 = FIntRect(0, 0, halfSizeX, halfSizeY);
-	//Screen2 = FIntRect(halfSizeX, 0, sizeX, halfSizeY);
-	//Screen3 = FIntRect(0, halfSizeY, halfSizeX, sizeY);
-	//Screen4 = FIntRect(halfSizeX, halfSizeY, sizeX, sizeY);
+    UE_LOG(CloudyStreamLog, Warning, TEXT("ScreenList size: %d"), ScreenList.Num());
+
 	flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm, ECubeFace::CubeFace_NegX);
 
 }
@@ -131,6 +125,7 @@ bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 	if (GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())
 	{
 		// split screen for 4 players
+        // This code is being called every frame. TODO: Optimize
 		Split4Player();
 		StreamFrameToClient();
 	}
@@ -153,7 +148,7 @@ void CloudyStreamImpl::StreamFrameToClient() {
 			PixelBuffer[j] = Pixel.DWColor();
 		}
 
-		fwrite(PixelBuffer, halfSizeX * PIXEL_SIZE, halfSizeY, VideoPipeList[i]);
+        fwrite(PixelBuffer, ColIncrement * PIXEL_SIZE, RowIncrement, VideoPipeList[i]);
 	}
 	delete[]PixelBuffer;
 }
@@ -163,6 +158,12 @@ void CloudyStreamImpl::StreamFrameToClient() {
 void CloudyStreamImpl::Split4Player() {
 
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
+
+    if (OneCounter == 0)
+    {
+        OneCounter = 1;
+        UE_LOG(CloudyStreamLog, Warning, TEXT("FrameBufferList size: %d ScreenList size: %d"), FrameBufferList.Num(), ScreenList.Num());
+    }
 
    //for (int i = 0; i < NumberOfPlayers; i++)
    //{
@@ -177,6 +178,10 @@ void CloudyStreamImpl::Split4Player() {
         ReadingViewport->ReadPixels(FrameBufferList[2], flags, ScreenList[2]);
 	if (NumberOfPlayers > 3)
         ReadingViewport->ReadPixels(FrameBufferList[3], flags, ScreenList[3]);
+    if (NumberOfPlayers > 4)
+        ReadingViewport->ReadPixels(FrameBufferList[4], flags, ScreenList[4]);
+    if (NumberOfPlayers > 5)
+        ReadingViewport->ReadPixels(FrameBufferList[5], flags, ScreenList[5]);
 
 }
 

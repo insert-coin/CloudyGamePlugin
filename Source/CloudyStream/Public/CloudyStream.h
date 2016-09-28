@@ -96,10 +96,12 @@ public:
 	TArray<FILE*> VideoPipeList;
 	TArray<TArray<FColor> > FrameBufferList;
 	bool isEngineRunning;
-	int sizeX, sizeY, halfSizeX, halfSizeY;
+	int sizeX, sizeY;
+    float RowIncrement, ColIncrement;
 	TArray<int> PlayerFrameMapping; // index is frame index, value is controller ID
     TArray<FIntRect> ScreenList;
 	FIntRect Screen1, Screen2, Screen3, Screen4;
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
 
+    int OneCounter = 0;
 };
