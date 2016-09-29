@@ -46,8 +46,9 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 
     UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming port: %d"), StreamingPort);
 
-    *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncInt << "x" << RowIncInt << " -r " << FPS << " -i - -listen 1 -c:v libx264 -preset slow -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
-	VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
+    *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncInt << "x" << RowIncInt << " -r " << FPS << " -loglevel quiet -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
+    VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
+
 
 	// add frame buffer for new player
 	TArray<FColor> TempFrameBuffer;
@@ -161,12 +162,6 @@ void CloudyStreamImpl::StreamFrameToClient() {
 void CloudyStreamImpl::Split4Player() {
 
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
-
-    if (OneCounter == 0)
-    {
-        OneCounter = 1;
-        UE_LOG(CloudyStreamLog, Warning, TEXT("FrameBufferList size: %d ScreenList size: %d"), FrameBufferList.Num(), ScreenList.Num());
-    }
 
    //for (int i = 0; i < NumberOfPlayers; i++)
    //{

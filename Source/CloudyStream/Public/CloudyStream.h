@@ -104,7 +104,4 @@ public:
 	FIntRect Screen1, Screen2, Screen3, Screen4;
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
 
-    
-
-    int OneCounter = 0;
 };
