@@ -17,7 +17,7 @@ bool RemoteControllerServer::StartServer(const FIPv4Endpoint& endpoint)
 {
 	UE_LOG(ServerLog, Warning, TEXT("CloudyGame: RemoteController Server Started"));
 	FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
-	ServerSocket = FUdpSocketBuilder(TEXT("RemoteControllerServerSocket")).BoundToEndpoint(endpoint);
+	ServerSocket = FUdpSocketBuilder(TEXT("RemoteControllerServerSocket")).AsNonBlocking().BoundToEndpoint(endpoint);
 	InputReceiver = new FUdpSocketReceiver(ServerSocket, ThreadWaitTime, TEXT("Udp Input Receiver"));
 	InputReceiver->OnDataReceived().BindRaw(this, &RemoteControllerServer::HandleInputReceived);
 	UE_LOG(ServerLog, Warning, TEXT("CloudyGame: RemoteController Server Started Successfully"));
@@ -58,8 +58,8 @@ void RemoteControllerServer::ProcessMouseInput(const FArrayReaderPtr& Data)
 	// InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
 	FKey mouseX = EKeys::MouseX;
 	FKey mouseY = EKeys::MouseY;
-	controller->InputAxis(mouseX, Chunk.XAxis, 0.025, 1, false);
-	controller->InputAxis(mouseY, -Chunk.YAxis, 0.025, 1, false);
+    controller->InputAxis(mouseX, Chunk.XAxis, world->GetDeltaSeconds(), 1, false);
+    controller->InputAxis(mouseY, -Chunk.YAxis, world->GetDeltaSeconds(), 1, false);
 }
 
 void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)

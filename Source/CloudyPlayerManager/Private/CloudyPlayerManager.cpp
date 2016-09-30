@@ -17,7 +17,7 @@ DEFINE_LOG_CATEGORY(ModuleLog)
 
 #define DELETE_URL "/game-session/"
 #define DELETE_REQUEST "DELETE"
-#define MAX_PLAYERS 4
+#define MAX_PLAYERS 6
 
 
 void CCloudyPlayerManagerModule::StartupModule()
