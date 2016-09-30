@@ -163,24 +163,12 @@ void CloudyStreamImpl::Split4Player() {
 
 	FViewport* ReadingViewport = GEngine->GameViewport->Viewport;
 
-   //for (int i = 0; i < NumberOfPlayers; i++)
-   //{
-   //    ReadingViewport->ReadPixels(FrameBufferList[i], flags, ScreenList[i]);
-   //}
-
-    if (NumberOfPlayers > 0)
-        ReadingViewport->ReadPixels(FrameBufferList[0], flags, ScreenList[0]);
-	if (NumberOfPlayers > 1)
-        ReadingViewport->ReadPixels(FrameBufferList[1], flags, ScreenList[1]);
-	if (NumberOfPlayers > 2)
-        ReadingViewport->ReadPixels(FrameBufferList[2], flags, ScreenList[2]);
-	if (NumberOfPlayers > 3)
-        ReadingViewport->ReadPixels(FrameBufferList[3], flags, ScreenList[3]);
-    if (NumberOfPlayers > 4)
-        ReadingViewport->ReadPixels(FrameBufferList[4], flags, ScreenList[4]);
-    if (NumberOfPlayers > 5)
-        ReadingViewport->ReadPixels(FrameBufferList[5], flags, ScreenList[5]);
-
+    for (int i = 0; i < NumberOfPlayers; i++)
+    {
+        ReadingViewport->ReadPixels(FrameBufferList[i], flags, ScreenList[i]);
+    }
+    
+    //CloudyFrameReaderThread::StartThread();// FrameBufferList[0], flags, ScreenList[0]);
 }
 
 
