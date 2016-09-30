@@ -7,9 +7,9 @@ class RemoteControllerServer
 public:
 	RemoteControllerServer(const FIPv4Endpoint& InServerEndpoint);
 	~RemoteControllerServer();
-
 	bool StartServer(const FIPv4Endpoint& ServerEndpoint);
 	void StopServer();
+
 private:
 	void ProcessKeyboardInput(const FArrayReaderPtr& Data);
 	void ProcessMouseInput(const FArrayReaderPtr& Data);

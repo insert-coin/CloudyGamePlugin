@@ -86,12 +86,6 @@ bool CCloudyPlayerManagerModule::RemovePlayer(int32 ControllerId, int32 GameSess
 	ULocalPlayer* const ExistingPlayer = GameInstance->FindLocalPlayerFromControllerId(ControllerId);
 	bool Success = false;
 
-
-	
-	
-	
-
-
 	if (ExistingPlayer != NULL)
 	{
 		UE_LOG(ModuleLog, Warning, TEXT("Controller Id: %d"), ControllerId);
