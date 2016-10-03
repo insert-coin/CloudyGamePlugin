@@ -4,6 +4,9 @@
 
 DEFINE_LOG_CATEGORY(ServerLog)
 
+UGameInstance* gameinstance;
+UWorld* world;
+
 RemoteControllerServer::RemoteControllerServer(const FIPv4Endpoint& InServerEndpoint)
 {
 	StartServer(InServerEndpoint);
@@ -20,6 +23,7 @@ bool RemoteControllerServer::StartServer(const FIPv4Endpoint& endpoint)
 	ServerSocket = FUdpSocketBuilder(TEXT("RemoteControllerServerSocket")).AsNonBlocking().BoundToEndpoint(endpoint);
 	InputReceiver = new FUdpSocketReceiver(ServerSocket, ThreadWaitTime, TEXT("Udp Input Receiver"));
 	InputReceiver->OnDataReceived().BindRaw(this, &RemoteControllerServer::HandleInputReceived);
+    world = NULL;
 	UE_LOG(ServerLog, Warning, TEXT("CloudyGame: RemoteController Server Started Successfully"));
 	return true;
 }
@@ -28,8 +32,13 @@ void RemoteControllerServer::ProcessKeyboardInput(const FArrayReaderPtr& Data)
 {
 	FUdpRemoteControllerSegment::FKeyboardInputChunk Chunk;
 	*Data << Chunk;
-	UGameInstance* gameinstance = GEngine->GameViewport->GetGameInstance();
-	UWorld* world = gameinstance->GetWorld();
+
+    // If world has not been loaded into variable yet
+    if (world == NULL) {
+        gameinstance = GEngine->GameViewport->GetGameInstance();
+        world = gameinstance->GetWorld();
+    }
+	
 	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
 
 	if (Chunk.CharCode != 27) { // not ESC key (ESC crashes UE)
@@ -51,15 +60,18 @@ void RemoteControllerServer::ProcessMouseInput(const FArrayReaderPtr& Data)
 {
 	FUdpRemoteControllerSegment::FMouseInputChunk Chunk;
 	*Data << Chunk;
-	UGameInstance* gameinstance = GEngine->GameViewport->GetGameInstance();
-	UWorld* world = gameinstance->GetWorld();
+	
+    // If world has not been loaded into variable yet
+    if (world == NULL) {
+        gameinstance = GEngine->GameViewport->GetGameInstance();
+        world = gameinstance->GetWorld();
+    }
+
 	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
 
 	// InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
-	FKey mouseX = EKeys::MouseX;
-	FKey mouseY = EKeys::MouseY;
-    controller->InputAxis(mouseX, Chunk.XAxis, world->GetDeltaSeconds(), 1, false);
-    controller->InputAxis(mouseY, -Chunk.YAxis, world->GetDeltaSeconds(), 1, false);
+    controller->InputAxis(EKeys::MouseX, Chunk.XAxis, world->GetDeltaSeconds(), 1, false);
+    controller->InputAxis(EKeys::MouseY, -Chunk.YAxis, world->GetDeltaSeconds(), 1, false);
 }
 
 void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
