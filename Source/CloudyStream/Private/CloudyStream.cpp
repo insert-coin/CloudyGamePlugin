@@ -110,8 +110,6 @@ bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 		APlayerController* Controller = ExistingPlayer->PlayerController;
 		Controller->GetPawn()->Destroy();
 		GameInstance->DebugRemovePlayer(0); // remove default first player
-
-
 	}
 
 	// engine has been stopped

@@ -114,9 +114,10 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 */
 std::string get_env_var(std::string const & key) {
     char * val;
-    val = getenv(key.c_str());
+    size_t sz = 0;
     std::string retval = "";
-    if (val != NULL) {
+    if (_dupenv_s(&val, &sz, key.c_str()) == 0 && val != nullptr)
+    {
         retval = val;
     }
     return retval;
@@ -655,7 +656,8 @@ bool CloudyWebConnectorImpl::InputHandler(FSocket* ConnectionSocket, const FIPv4
     while (!(ConnectionSocket->HasPendingData(Size)));
 
     // handle data - change global InputStr
-    ReceivedData.Init(FMath::Min(Size, 65507u));
+    // ReceivedData.Init(FMath::Min(Size, 65507u)); // Deprecated
+    ReceivedData.SetNumUninitialized(Size);
 
     int32 Read = 0;
     ConnectionSocket->Recv(ReceivedData.GetData(), ReceivedData.Num(), Read);
