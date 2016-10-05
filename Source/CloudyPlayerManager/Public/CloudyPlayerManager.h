@@ -77,5 +77,6 @@ public:
 	}
 
 	/** Class variables */
-	int GameSessionIdMapping[]; // maps controller ID to game session ID
+    TArray<int> GameSessionIdMapping; // maps controller ID to game session ID
+
 };

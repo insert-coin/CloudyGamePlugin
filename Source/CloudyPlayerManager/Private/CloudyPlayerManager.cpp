@@ -27,11 +27,7 @@ void CCloudyPlayerManagerModule::StartupModule()
 	UE_LOG(ModuleLog, Warning, TEXT("CloudyPlayerManager started"));
 
 	// initialise game session id mapping
-	int GameSessionIdMapping[MAX_PLAYERS];
-	for (int i = 0; i < MAX_PLAYERS; i++)
-	{
-		GameSessionIdMapping[i] = -1;
-	}
+    GameSessionIdMapping.Init(-1, MAX_PLAYERS);
 }
 
 void CCloudyPlayerManagerModule::ShutdownModule()

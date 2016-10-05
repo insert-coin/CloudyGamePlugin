@@ -69,9 +69,15 @@ void RemoteControllerServer::ProcessMouseInput(const FArrayReaderPtr& Data)
 
 	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
 
-	// InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
-    controller->InputAxis(EKeys::MouseX, Chunk.XAxis, world->GetDeltaSeconds(), 1, false);
-    controller->InputAxis(EKeys::MouseY, -Chunk.YAxis, world->GetDeltaSeconds(), 1, false);
+    // InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
+    if (Chunk.XAxis != NULL)
+    {
+        controller->InputAxis(EKeys::MouseX, Chunk.XAxis, world->GetDeltaSeconds(), 1, false);
+    }
+    if (Chunk.YAxis != NULL)
+    {
+        controller->InputAxis(EKeys::MouseY, -Chunk.YAxis, world->GetDeltaSeconds(), 1, false);
+    }
 }
 
 void RemoteControllerServer::HandleInputReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
