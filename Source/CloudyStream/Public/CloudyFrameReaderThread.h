@@ -12,20 +12,23 @@ class CloudyFrameReaderThread : public IModuleInterface, public FRunnable
  
 	/** Thread to run the worker FRunnable on */
 	FRunnableThread* Thread;
+
+    /** Stop this thread? Uses Thread Safe Counter */
+    FThreadSafeCounter StopTaskCounter;
  
 public:
 
  
 	//Done?
-	bool IsFinished() const
-	{
-        return false;
-	}
+    bool IsFinished();// const
+	//{
+        //return PrimesFoundCount >= TotalPrimesToFind;
+	//}
  
 	//~~~ Thread Core Functions ~~~
  
 	//Constructor / Destructor
-	CloudyFrameReaderThread();
+    CloudyFrameReaderThread(int counter, int FrameSize, uint32 *PixelBuffer, int i, TArray<TArray<FColor> > FrameBufferList, TArray<int> PlayerFrameMapping, int ColIncInt, int PixelSize, int RowIncInt, TArray<FILE*> VideoPipeList);
 	virtual ~CloudyFrameReaderThread();
  
 	// Begin FRunnable interface.
@@ -48,7 +51,7 @@ public:
 		This code ensures only 1 Prime Number thread will be able to run at a time. 
 		This function returns a handle to the newly started instance.
 	*/
-    static CloudyFrameReaderThread* StartThread();// TArray<FColor> FrameBuffer, FReadSurfaceDataFlags flags, FIntRect Screen);
+    static CloudyFrameReaderThread* StartThread(int counter, int FrameSize, uint32 *PixelBuffer, int i, TArray<TArray<FColor> > FrameBufferList, TArray<int> PlayerFrameMapping, int ColIncInt, int PixelSize, int RowIncInt, TArray<FILE*> VideoPipeList);
  
 	/** Shuts down the thread. Static so it can easily be called from outside the thread context */
 	static void Shutdown();

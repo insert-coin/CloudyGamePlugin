@@ -15,6 +15,8 @@
 #define NUM_ROWS 2.0
 #define NUM_COLS 3.0
 
+int counter = 0;
+
 DEFINE_LOG_CATEGORY(CloudyStreamLog)
 
 void CloudyStreamImpl::StartupModule()
@@ -139,20 +141,32 @@ void CloudyStreamImpl::StreamFrameToClient() {
 
 	// use VideoPipe (class variable) to pass frames to encoder
 	uint32 *PixelBuffer;
-	FColor Pixel;
+	
 	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+
+    counter++;
+
 
 	for (int i = 0; i < NumberOfPlayers; i++) {
 		int FrameSize = FrameBufferList[i].Num();
 
-		for (int j = 0; j < FrameSize; ++j) {
-			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
-			PixelBuffer[j] = Pixel.DWColor();
-		}
-
-        fwrite(PixelBuffer, ColIncInt * PIXEL_SIZE, RowIncInt, VideoPipeList[i]);
+        //WriteFrameToPipe(FrameSize, PixelBuffer, i);
+        CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
+        
 	}
+    CloudyFrameReaderThread::Shutdown();
 	delete[]PixelBuffer;
+}
+
+void CloudyStreamImpl::WriteFrameToPipe(int FrameSize, uint32 *PixelBuffer, int i)
+{
+    FColor Pixel;
+    for (int j = 0; j < FrameSize; ++j) {
+        Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
+        PixelBuffer[j] = Pixel.DWColor();
+    }
+
+    fwrite(PixelBuffer, ColIncInt * PIXEL_SIZE, RowIncInt, VideoPipeList[i]);
 }
 
 

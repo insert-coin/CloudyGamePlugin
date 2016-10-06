@@ -90,6 +90,9 @@ public:
 	// Timer for capturing frames
 	bool CaptureFrame(float DeltaTime);
 
+    // Multithreaded function
+    void WriteFrameToPipe(int FrameSize, uint32 *PixelBuffer, int i);
+
 
 	/** Class variables **/
 	int NumberOfPlayers;

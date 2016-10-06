@@ -8,9 +8,31 @@ CloudyFrameReaderThread* CloudyFrameReaderThread::Runnable = NULL;
  
 DEFINE_LOG_CATEGORY(CloudyFrameReaderThreadLog)
 
-CloudyFrameReaderThread::CloudyFrameReaderThread()
+int TFrameSize;
+uint32 *TPixelBuffer;
+int Ti;
+TArray<TArray<FColor> > TFrameBufferList;
+TArray<int> TPlayerFrameMapping;
+int TColIncInt;
+int TPixelSize;
+int TRowIncInt;
+TArray<FILE*> TVideoPipeList;
+int j;
+
+CloudyFrameReaderThread::CloudyFrameReaderThread(int counter, int FrameSize, uint32 *PixelBuffer, int i, TArray<TArray<FColor> > FrameBufferList, TArray<int> PlayerFrameMapping, int ColIncInt, int PixelSize, int RowIncInt, TArray<FILE*> VideoPipeList)
 {
-	Thread = FRunnableThread::Create(this, TEXT("CloudyFrameReaderThread"), 0, TPri_Normal); //windows default = 8mb for thread, could specify more
+    TFrameSize = FrameSize;
+    TPixelBuffer = PixelBuffer;
+    Ti = i;
+    TFrameBufferList = FrameBufferList;
+    TPlayerFrameMapping = PlayerFrameMapping;
+    TColIncInt = ColIncInt;
+    TPixelSize = PixelSize;
+    TRowIncInt = RowIncInt;
+    TVideoPipeList = VideoPipeList;
+    
+    // FRunnableThread::Create(FRunnable * InRunnable, const TCHAR* ThreadName, uint32 InStackSize, EThreadPriority InThreadPriority)
+    Thread = FRunnableThread::Create(this, *FString::FromInt(counter), 0, TPri_Normal); // 0 is windows default = 8mb for thread, could specify more
 }
  
 CloudyFrameReaderThread::~CloudyFrameReaderThread()
@@ -22,8 +44,10 @@ CloudyFrameReaderThread::~CloudyFrameReaderThread()
 //Init
 bool CloudyFrameReaderThread::Init()
 {
-	//Init the Data 
-    UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread init"));
+    //Init the Data 
+    j = 0;
+	
+    //UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread init"));
 	return true;
 }
  
@@ -31,12 +55,23 @@ bool CloudyFrameReaderThread::Init()
 uint32 CloudyFrameReaderThread::Run()
 {
 	//Initial wait before starting
-	//FPlatformProcess::Sleep(0.03);
-    UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread running"));
-	
- 
+	FPlatformProcess::Sleep(0.03);
+
+    //UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread running"));
+
+    FColor Pixel;
+    for (j = 0; j < TFrameSize; ++j) {
+        Pixel = TFrameBufferList[TPlayerFrameMapping[Ti]][j]; 
+        TPixelBuffer[j] = Pixel.DWColor();
+
+        //prevent thread from using too many resources
+        //FPlatformProcess::Sleep(0.01); // Streaming not working with this
+    }
+
+    fwrite(TPixelBuffer, TColIncInt * TPixelSize, TRowIncInt, TVideoPipeList[Ti]);
+
 	//Run CloudyFrameReaderThread::Shutdown() from the timer in Game Thread that is watching
-        //to see when CloudyFrameReaderThread::IsThreadFinished()
+    //to see when CloudyFrameReaderThread::IsThreadFinished()
  
 	return 0;
 }
@@ -44,16 +79,16 @@ uint32 CloudyFrameReaderThread::Run()
 //stop
 void CloudyFrameReaderThread::Stop()
 {
-    UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread stop"));
+    //UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread stop"));
 }
  
-CloudyFrameReaderThread* CloudyFrameReaderThread::StartThread()// TArray<FColor> FrameBuffer, FReadSurfaceDataFlags flags, FIntRect Screen)
+CloudyFrameReaderThread* CloudyFrameReaderThread::StartThread(int counter, int FrameSize, uint32 *PixelBuffer, int i, TArray<TArray<FColor> > FrameBufferList, TArray<int> PlayerFrameMapping, int ColIncInt, int PixelSize, int RowIncInt, TArray<FILE*> VideoPipeList)
 {
 	//Create new instance of thread if it does not exist
 	//		and the platform supports multi threading!
 	if (!Runnable && FPlatformProcess::SupportsMultithreading())
 	{
-		Runnable = new CloudyFrameReaderThread();			
+        Runnable = new CloudyFrameReaderThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, PixelSize, RowIncInt, VideoPipeList);
 	}
 	return Runnable;
 }
@@ -80,4 +115,9 @@ bool CloudyFrameReaderThread::IsThreadFinished()
         return Runnable->IsFinished();
 
 	return true;
+}
+
+bool CloudyFrameReaderThread::IsFinished()
+{
+    return j >= TFrameSize;
 }
