@@ -94,6 +94,12 @@ void CloudyStreamImpl::SetUpVideoCapture() {
 
 }
 
+void CloudyStreamImpl::SetUpThreadPool() {
+
+    ThreadPool = FQueuedThreadPool::Allocate();
+    ThreadPool->Create(MAX_NUM_PLAYERS, 128 * 1024, TPri_Normal);
+}
+
 
 bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 
@@ -101,6 +107,7 @@ bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
 		isEngineRunning = true;
 		SetUpVideoCapture();
+        SetUpThreadPool();
 		UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
 		NumberOfPlayers = 0;
 		
@@ -148,14 +155,15 @@ void CloudyStreamImpl::StreamFrameToClient() {
         //WriteFrameToPipe(FrameSize, PixelBuffer, i);
         if (i == 0)
         {
-            CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
+            // CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
+            (new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         else
         {
             WriteFrameToPipe(FrameSize, PixelBuffer, i);
         }
 	}
-    CloudyFrameReaderThread::Shutdown();
+    //CloudyFrameReaderThread::Shutdown();
 	delete[]PixelBuffer;
 }
 

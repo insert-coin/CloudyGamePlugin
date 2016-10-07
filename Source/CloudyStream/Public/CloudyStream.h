@@ -22,6 +22,12 @@ public:
 	*/
 	void SetUpVideoCapture();
 
+    /**
+    * One-time set up for the thread pool. To be used for multithreading when 
+    * reading and writing frames
+    */
+    void SetUpThreadPool();
+
 	/**
 	* Sets up variables required per-player for streaming, including the 
 	* player's stream and mapping from player's ControllerId to Frame index.
@@ -107,4 +113,5 @@ public:
 	FIntRect Screen1, Screen2, Screen3, Screen4;
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
 
+    FQueuedThreadPool* ThreadPool;
 };
