@@ -80,19 +80,15 @@ void CloudyStreamImpl::SetUpVideoCapture() {
 
     UE_LOG(CloudyStreamLog, Warning, TEXT("RowIncrement: %f ColIncrement: %f"), RowIncrement, ColIncrement);
 
-    UE_LOG(CloudyStreamLog, Warning, TEXT("ScreenList size: %d"), ScreenList.Num());
-
     for (float i = 0.0f; i < sizeY; i += RowIncrement)
     {
         for (float k = 0.0f; k < sizeX; k += ColIncrement)
         {
             // FIntRect(TopLeftX, TopLeftY, BottomRightX, BottomRightY)
             ScreenList.Add(FIntRect(k, i, k + ColIncInt, i + RowIncInt));
-            UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: k: %f i: %f"), k, i);
+            // UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: k: %f i: %f"), k, i);
         }
     }
-
-    UE_LOG(CloudyStreamLog, Warning, TEXT("ScreenList size: %d"), ScreenList.Num());
 
 	flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm, ECubeFace::CubeFace_NegX);
 
@@ -146,13 +142,18 @@ void CloudyStreamImpl::StreamFrameToClient() {
 
     counter++;
 
-
 	for (int i = 0; i < NumberOfPlayers; i++) {
 		int FrameSize = FrameBufferList[i].Num();
 
         //WriteFrameToPipe(FrameSize, PixelBuffer, i);
-        CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
-        
+        if (i == 0)
+        {
+            CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
+        }
+        else
+        {
+            WriteFrameToPipe(FrameSize, PixelBuffer, i);
+        }
 	}
     CloudyFrameReaderThread::Shutdown();
 	delete[]PixelBuffer;
