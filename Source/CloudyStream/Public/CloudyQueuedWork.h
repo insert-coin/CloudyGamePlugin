@@ -44,13 +44,13 @@ public:
     void DoWork()
     {
         // Place the Async Code here.  This function runs automatically.
-        //FColor Pixel;
-        //for (int j = 0; j < TFrameSize; ++j) {
-        //    Pixel = TFrameBufferList[TPlayerFrameMapping[Ti]][j];
-        //    TPixelBuffer[j] = Pixel.DWColor();
-        //}
-        //
-        //fwrite(TPixelBuffer, TColIncInt * TPixelSize, TRowIncInt, TVideoPipeList[Ti]);
+        FColor Pixel;
+        for (int j = 0; j < TFrameSize; ++j) {
+            Pixel = TFrameBufferList[TPlayerFrameMapping[Ti]][j];
+            TPixelBuffer[j] = Pixel.DWColor();
+        }
+        
+        fwrite(TPixelBuffer, TColIncInt * TPixelSize, TRowIncInt, TVideoPipeList[Ti]);
     }
 
     

@@ -147,22 +147,88 @@ void CloudyStreamImpl::StreamFrameToClient() {
 	
 	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
 
-    counter++;
+    //counter++;
+    FAsyncTask<CloudyQueuedWork>* MyTask = NULL;
+    FAsyncTask<CloudyQueuedWork>* MyTask1 = NULL;
+    FAsyncTask<CloudyQueuedWork>* MyTask2 = NULL;
+    FAsyncTask<CloudyQueuedWork>* MyTask3 = NULL;
+    FAsyncTask<CloudyQueuedWork>* MyTask4 = NULL;
+    FAsyncTask<CloudyQueuedWork>* MyTask5 = NULL;
+    //FAutoDeleteAsyncTask<CloudyQueuedWork>* MyTask = NULL;
 
 	for (int i = 0; i < NumberOfPlayers; i++) {
 		int FrameSize = FrameBufferList[i].Num();
 
         //WriteFrameToPipe(FrameSize, PixelBuffer, i);
+        //if (i == 0 || i == 1)
+        //if (i < NumberOfPlayers)
+        //{
+            //CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
+            //(MyTask = new FAutoDeleteAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+       //     (MyTask = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            // Use the thread pool you made
+        //}
         if (i == 0)
         {
-            // CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
-            (new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            (MyTask = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 1)
+        {
+            (MyTask1 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 2)
+        {
+            (MyTask2 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 3)
+        {
+            (MyTask3 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 4)
+        {
+            (MyTask4 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 5)
+        {
+            (MyTask5 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         else
         {
             WriteFrameToPipe(FrameSize, PixelBuffer, i);
         }
+        
 	}
+    if (MyTask != NULL)
+    {
+        MyTask->EnsureCompletion();
+        delete MyTask;
+    }
+    if (MyTask1 != NULL)
+    {
+        MyTask1->EnsureCompletion();
+        delete MyTask1;
+    }
+    if (MyTask2 != NULL)
+    {
+        MyTask2->EnsureCompletion();
+        delete MyTask2;
+    }
+    if (MyTask3 != NULL)
+    {
+        MyTask3->EnsureCompletion();
+        delete MyTask3;
+    }
+    if (MyTask4 != NULL)
+    {
+        MyTask4->EnsureCompletion();
+        delete MyTask4;
+    }
+    if (MyTask5 != NULL)
+    {
+        MyTask5->EnsureCompletion();
+        delete MyTask5;
+    }
+   
     //CloudyFrameReaderThread::Shutdown();
 	delete[]PixelBuffer;
 }
@@ -186,6 +252,9 @@ void CloudyStreamImpl::Split4Player() {
 
     for (int i = 0; i < NumberOfPlayers; i++)
     {
+        // i number of queues
+        // Each iteration, push ReadingViewport into all available queues
+        // Each thread should poll the queue to check if there is any Viewport to read from, then try to read and stream
         ReadingViewport->ReadPixels(FrameBufferList[i], flags, ScreenList[i]);
     }
     
