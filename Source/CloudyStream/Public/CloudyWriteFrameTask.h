@@ -2,15 +2,15 @@
 
 #include "ModuleManager.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(CloudyQueuedWorkLog, Log, All)
+DECLARE_LOG_CATEGORY_EXTERN(CloudyWriteFrameTaskLog, Log, All)
 
 
-class CloudyQueuedWork : public FNonAbandonableTask
+class CloudyWriteFrameTask : public FNonAbandonableTask
 {
-    friend class FAutoDeleteAsyncTask<CloudyQueuedWork>;
+    friend class FAutoDeleteAsyncTask<CloudyWriteFrameTask>;
 
 public:
-    CloudyQueuedWork(int FrameSize, uint32 *PixelBuffer, int i, TArray<TArray<FColor> > FrameBufferList,
+    CloudyWriteFrameTask(int FrameSize, uint32 *PixelBuffer, int i, TArray<TArray<FColor> > FrameBufferList,
                      TArray<int> PlayerFrameMapping, int ColIncInt, int PixelSize, int RowIncInt, TArray<FILE*> VideoPipeList) :
         TFrameSize(FrameSize),
         TPixelBuffer(PixelBuffer),
@@ -27,7 +27,7 @@ public:
 
     FORCEINLINE TStatId GetStatId() const
     {
-        RETURN_QUICK_DECLARE_CYCLE_STAT(CloudyQueuedWork, STATGROUP_ThreadPoolAsyncTasks);
+        RETURN_QUICK_DECLARE_CYCLE_STAT(CloudyWriteFrameTask, STATGROUP_ThreadPoolAsyncTasks);
     }
 
 //protected:

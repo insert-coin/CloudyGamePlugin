@@ -102,7 +102,6 @@ public:
 
 	/** Class variables **/
 	int NumberOfPlayers;
-	TArray<FILE*> VideoPipeList;
 	TArray<TArray<FColor> > FrameBufferList;
 	bool isEngineRunning;
 	int sizeX, sizeY;
@@ -114,4 +113,6 @@ public:
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
 
     FQueuedThreadPool* ThreadPool;
+
+    static void AddPipeToList(FILE* TheFile);
 };

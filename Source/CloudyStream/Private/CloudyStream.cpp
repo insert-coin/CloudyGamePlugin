@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sstream>
 
+
 #define LOCTEXT_NAMESPACE "CloudyStream"
 
 #define PIXEL_SIZE 4
@@ -16,12 +17,15 @@
 #define NUM_COLS 3.0
 
 int counter = 0;
-FAsyncTask<CloudyQueuedWork>* MyTask = NULL;
-FAsyncTask<CloudyQueuedWork>* MyTask1 = NULL;
-FAsyncTask<CloudyQueuedWork>* MyTask2 = NULL;
-FAsyncTask<CloudyQueuedWork>* MyTask3 = NULL;
-FAsyncTask<CloudyQueuedWork>* MyTask4 = NULL;
-FAsyncTask<CloudyQueuedWork>* MyTask5 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask1 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask2 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask3 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask4 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask5 = NULL;
+
+TArray<FILE*> VideoPipeList;
+
 
 bool IsThreadStarted = false;
 
@@ -58,8 +62,9 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
     UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming port: %d"), StreamingPort);
 
     *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncInt << "x" << RowIncInt << " -r " << FPS << " -loglevel quiet -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
-    VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
-
+    
+    //VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
+    (new FAutoDeleteAsyncTask<CloudyOpenFfmpegTask>(StringStream))->StartBackgroundTask();
 
 	// add frame buffer for new player
 	TArray<FColor> TempFrameBuffer;
@@ -158,7 +163,7 @@ void CloudyStreamImpl::StreamFrameToClient() {
 
     //counter++;
     
-    //FAutoDeleteAsyncTask<CloudyQueuedWork>* MyTask = NULL;
+    //FAutoDeleteAsyncTask<CloudyWriteFrameTask>* MyTask = NULL;
 
 	for (int i = 0; i < NumberOfPlayers; i++) {
 		int FrameSize = FrameBufferList[i].Num();
@@ -168,33 +173,33 @@ void CloudyStreamImpl::StreamFrameToClient() {
         //if (i < NumberOfPlayers)
         //{
             //CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
-            //(MyTask = new FAutoDeleteAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
-       //     (MyTask = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            //(MyTask = new FAutoDeleteAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+       //     (MyTask = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
             // Use the thread pool you made
         //}
         if (i == 0)
         {
-            (MyTask = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            (MyTask = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         if (i == 1)
         {
-            (MyTask1 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            (MyTask1 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         if (i == 2)
         {
-            (MyTask2 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            (MyTask2 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         if (i == 3)
         {
-            (MyTask3 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            (MyTask3 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         if (i == 4)
         {
-            (MyTask4 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            (MyTask4 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         if (i == 5)
         {
-            (MyTask5 = new FAsyncTask<CloudyQueuedWork>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            (MyTask5 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
         else
         {
@@ -282,6 +287,11 @@ void CloudyStreamImpl::StopPlayerStream(int32 ControllerId)
 	PlayerFrameMapping.Remove(ControllerId);
 	VideoPipeList.RemoveAt(PipeIndex);
 	NumberOfPlayers--;
+}
+
+void CloudyStreamImpl::AddPipeToList(FILE* TheFile)
+{
+    VideoPipeList.Add(TheFile);
 }
 
 
