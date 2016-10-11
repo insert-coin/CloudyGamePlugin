@@ -90,7 +90,7 @@ bool CCloudyPlayerManagerModule::RemovePlayer(int32 ControllerId, int32 GameSess
 		APlayerController* Controller = ExistingPlayer->PlayerController;
 		Controller->GetPawn()->Destroy();
 
-		// delete appropriate game session
+		// delete appropriate game session (delete from CloudyWeb)
 		int32 GameSessionId = GameSessionIdMapping[ControllerId];
 		FString GameSessionString = DELETE_URL + FString::FromInt(GameSessionId) + "/";
 		UE_LOG(ModuleLog, Warning, TEXT("Game Session string: %s"), *GameSessionString);

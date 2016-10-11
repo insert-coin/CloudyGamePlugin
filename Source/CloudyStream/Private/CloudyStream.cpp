@@ -16,6 +16,15 @@
 #define NUM_COLS 3.0
 
 int counter = 0;
+FAsyncTask<CloudyQueuedWork>* MyTask = NULL;
+FAsyncTask<CloudyQueuedWork>* MyTask1 = NULL;
+FAsyncTask<CloudyQueuedWork>* MyTask2 = NULL;
+FAsyncTask<CloudyQueuedWork>* MyTask3 = NULL;
+FAsyncTask<CloudyQueuedWork>* MyTask4 = NULL;
+FAsyncTask<CloudyQueuedWork>* MyTask5 = NULL;
+
+bool IsThreadStarted = false;
+
 
 DEFINE_LOG_CATEGORY(CloudyStreamLog)
 
@@ -148,12 +157,7 @@ void CloudyStreamImpl::StreamFrameToClient() {
 	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
 
     //counter++;
-    FAsyncTask<CloudyQueuedWork>* MyTask = NULL;
-    FAsyncTask<CloudyQueuedWork>* MyTask1 = NULL;
-    FAsyncTask<CloudyQueuedWork>* MyTask2 = NULL;
-    FAsyncTask<CloudyQueuedWork>* MyTask3 = NULL;
-    FAsyncTask<CloudyQueuedWork>* MyTask4 = NULL;
-    FAsyncTask<CloudyQueuedWork>* MyTask5 = NULL;
+    
     //FAutoDeleteAsyncTask<CloudyQueuedWork>* MyTask = NULL;
 
 	for (int i = 0; i < NumberOfPlayers; i++) {
