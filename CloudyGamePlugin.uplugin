@@ -23,11 +23,6 @@
             "LoadingPhase": "Default"
         },
         {
-            "Name": "CloudySaveManager",
-            "Type": "Developer",
-            "LoadingPhase": "PreDefault"
-        },
-        {
             "Name": "CloudyStream",
             "Type": "Developer",
             "LoadingPhase": "Default"

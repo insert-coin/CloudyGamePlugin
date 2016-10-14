@@ -25,6 +25,15 @@ void RemoteControllerModule::StartupModule()
 void RemoteControllerModule::ShutdownModule()
 {
 	UE_LOG(RemoteControllerLog, Warning, TEXT("CloudyGame: RemoteController Module Shutting Down"));
+
+    delete UDPInputReceiver;
+    UDPInputReceiver = nullptr;
+
+    if (ServerListenSocket)
+    {
+        ServerListenSocket->Close();
+        ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ServerListenSocket);
+    }
 }
 
 void RemoteControllerModule::InitializeRemoteServer(const FString& SocketName, const FString& IPAddress, const int32 Port)
@@ -38,15 +47,16 @@ void RemoteControllerModule::InitializeRemoteServer(const FString& SocketName, c
     FIPv4Endpoint Endpoint(ParsedIP, Port);
     FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
     ServerListenSocket = FUdpSocketBuilder(SocketName).AsNonBlocking().AsReusable().BoundToEndpoint(Endpoint);
+    //ServerListenSocket = FUdpSocketBuilder(SocketName).AsNonBlocking().AsReusable().BoundToAddress(FIPv4Address::Any).BoundToPort(Port);
     UDPInputReceiver = new FUdpSocketReceiver(ServerListenSocket, ThreadWaitTime, TEXT("Udp Input Receiver"));
     UDPInputReceiver->OnDataReceived().BindRaw(this, &RemoteControllerModule::HandleInputReceived);
-    //UDPInputReceiver->OnDataReceived().BindUObject(this, &RemoteControllerModule::HandleInputReceived);
+    UDPInputReceiver->Start(); // New in UE4 4.13
     
     UE_LOG(RemoteControllerLog, Warning, TEXT("CloudyGame: RemoteController Server Started Successfully"));
 }
 
 void RemoteControllerModule::ProcessKeyboardInput(const FArrayReaderPtr& Data)
-{   
+{    
     FUdpRemoteControllerSegment::FKeyboardInputChunk Chunk;
 	*Data << Chunk;
 
@@ -74,7 +84,7 @@ void RemoteControllerModule::ProcessKeyboardInput(const FArrayReaderPtr& Data)
 
 
 void RemoteControllerModule::ProcessMouseInput(const FArrayReaderPtr& Data)
-{  
+{
     FUdpRemoteControllerSegment::FMouseInputChunk Chunk;
 	*Data << Chunk;
 	
@@ -106,12 +116,12 @@ void RemoteControllerModule::HandleInputReceived(const FArrayReaderPtr& Data, co
     {
     case EUdpRemoteControllerSegment::KeyboardInput:
     	ProcessKeyboardInput(Data);
-           //(new FAutoDeleteAsyncTask<CloudyProcessKeyboardInput>(Data))->StartBackgroundTask();
+        //(new FAutoDeleteAsyncTask<CloudyProcessKeyboardInput>(Data))->StartBackgroundTask();
     	break;
     case EUdpRemoteControllerSegment::MouseInput:
     	ProcessMouseInput(Data);
-           //(new FAutoDeleteAsyncTask<CloudyProcessMouseInput>(Data))->StartBackgroundTask();
-    	break;
+        //(new FAutoDeleteAsyncTask<CloudyProcessMouseInput>(Data))->StartBackgroundTask();
+       	break;
     }
 }
 
