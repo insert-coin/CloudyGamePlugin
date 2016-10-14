@@ -59,12 +59,12 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 
 	std::string StreamingIPString(TCHAR_TO_UTF8(*StreamingIP)); // convert to std::string
 
-    UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming port: %d"), StreamingPort);
+    UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming IP: %s, Streaming port: %d"), *StreamingIP, StreamingPort);
 
     *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncInt << "x" << RowIncInt << " -r " << FPS << " -loglevel quiet -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
     
-    //VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
-    (new FAutoDeleteAsyncTask<CloudyOpenFfmpegTask>(StringStream))->StartBackgroundTask();
+    VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
+    //(new FAutoDeleteAsyncTask<CloudyOpenFfmpegTask>(StringStream))->StartBackgroundTask();
 
 	// add frame buffer for new player
 	TArray<FColor> TempFrameBuffer;
@@ -201,15 +201,15 @@ void CloudyStreamImpl::StreamFrameToClient() {
         {
             (MyTask5 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
         }
-        else
-        {
-            WriteFrameToPipe(FrameSize, PixelBuffer, i);
-        }
+        //else
+        //{
+            //WriteFrameToPipe(FrameSize, PixelBuffer, i);
+        //}
         
 	}
     if (MyTask != NULL)
     {
-        MyTask->EnsureCompletion();
+        MyTask->EnsureCompletion(); // This line crashes when the player closes the thin client.
         delete MyTask;
     }
     if (MyTask1 != NULL)
