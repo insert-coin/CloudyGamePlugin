@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sstream>
 
+
 #define LOCTEXT_NAMESPACE "CloudyStream"
 
 #define PIXEL_SIZE 4
@@ -14,6 +15,20 @@
 #define MAX_NUM_PLAYERS 6
 #define NUM_ROWS 2.0
 #define NUM_COLS 3.0
+
+int counter = 0;
+FAsyncTask<CloudyWriteFrameTask>* MyTask = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask1 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask2 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask3 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask4 = NULL;
+FAsyncTask<CloudyWriteFrameTask>* MyTask5 = NULL;
+
+TArray<FILE*> VideoPipeList;
+
+
+bool IsThreadStarted = false;
+
 
 DEFINE_LOG_CATEGORY(CloudyStreamLog)
 
@@ -44,11 +59,12 @@ void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString 
 
 	std::string StreamingIPString(TCHAR_TO_UTF8(*StreamingIP)); // convert to std::string
 
-    UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming port: %d"), StreamingPort);
+    UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming IP: %s, Streaming port: %d"), *StreamingIP, StreamingPort);
 
     *StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncInt << "x" << RowIncInt << " -r " << FPS << " -loglevel quiet -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
+    
     VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
-
+    //(new FAutoDeleteAsyncTask<CloudyOpenFfmpegTask>(StringStream))->StartBackgroundTask();
 
 	// add frame buffer for new player
 	TArray<FColor> TempFrameBuffer;
@@ -78,22 +94,24 @@ void CloudyStreamImpl::SetUpVideoCapture() {
 
     UE_LOG(CloudyStreamLog, Warning, TEXT("RowIncrement: %f ColIncrement: %f"), RowIncrement, ColIncrement);
 
-    UE_LOG(CloudyStreamLog, Warning, TEXT("ScreenList size: %d"), ScreenList.Num());
-
     for (float i = 0.0f; i < sizeY; i += RowIncrement)
     {
         for (float k = 0.0f; k < sizeX; k += ColIncrement)
         {
             // FIntRect(TopLeftX, TopLeftY, BottomRightX, BottomRightY)
             ScreenList.Add(FIntRect(k, i, k + ColIncInt, i + RowIncInt));
-            UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: k: %f i: %f"), k, i);
+            // UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: k: %f i: %f"), k, i);
         }
     }
 
-    UE_LOG(CloudyStreamLog, Warning, TEXT("ScreenList size: %d"), ScreenList.Num());
-
 	flags = FReadSurfaceDataFlags(ERangeCompressionMode::RCM_MinMaxNorm, ECubeFace::CubeFace_NegX);
 
+}
+
+void CloudyStreamImpl::SetUpThreadPool() {
+
+    ThreadPool = FQueuedThreadPool::Allocate();
+    ThreadPool->Create(MAX_NUM_PLAYERS, 128 * 1024, TPri_Normal);
 }
 
 
@@ -103,6 +121,7 @@ bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 	if (!isEngineRunning && GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread()) {
 		isEngineRunning = true;
 		SetUpVideoCapture();
+        SetUpThreadPool();
 		UGameInstance* GameInstance = GEngine->GameViewport->GetGameInstance();
 		NumberOfPlayers = 0;
 		
@@ -139,20 +158,99 @@ void CloudyStreamImpl::StreamFrameToClient() {
 
 	// use VideoPipe (class variable) to pass frames to encoder
 	uint32 *PixelBuffer;
-	FColor Pixel;
+	
 	PixelBuffer = new uint32[sizeX * sizeY * PIXEL_SIZE];
+
+    //counter++;
+    
+    //FAutoDeleteAsyncTask<CloudyWriteFrameTask>* MyTask = NULL;
 
 	for (int i = 0; i < NumberOfPlayers; i++) {
 		int FrameSize = FrameBufferList[i].Num();
 
-		for (int j = 0; j < FrameSize; ++j) {
-			Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
-			PixelBuffer[j] = Pixel.DWColor();
-		}
-
-        fwrite(PixelBuffer, ColIncInt * PIXEL_SIZE, RowIncInt, VideoPipeList[i]);
+        //WriteFrameToPipe(FrameSize, PixelBuffer, i);
+        //if (i == 0 || i == 1)
+        //if (i < NumberOfPlayers)
+        //{
+            //CloudyFrameReaderThread::StartThread(counter, FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList);
+            //(MyTask = new FAutoDeleteAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+       //     (MyTask = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+            // Use the thread pool you made
+        //}
+        if (i == 0)
+        {
+            (MyTask = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 1)
+        {
+            (MyTask1 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 2)
+        {
+            (MyTask2 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 3)
+        {
+            (MyTask3 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 4)
+        {
+            (MyTask4 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        if (i == 5)
+        {
+            (MyTask5 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        }
+        //else
+        //{
+            //WriteFrameToPipe(FrameSize, PixelBuffer, i);
+        //}
+        
 	}
+    if (MyTask != NULL)
+    {
+        MyTask->EnsureCompletion(); // This line crashes when the player closes the thin client.
+        delete MyTask;
+    }
+    if (MyTask1 != NULL)
+    {
+        MyTask1->EnsureCompletion();
+        delete MyTask1;
+    }
+    if (MyTask2 != NULL)
+    {
+        MyTask2->EnsureCompletion();
+        delete MyTask2;
+    }
+    if (MyTask3 != NULL)
+    {
+        MyTask3->EnsureCompletion();
+        delete MyTask3;
+    }
+    if (MyTask4 != NULL)
+    {
+        MyTask4->EnsureCompletion();
+        delete MyTask4;
+    }
+    if (MyTask5 != NULL)
+    {
+        MyTask5->EnsureCompletion();
+        delete MyTask5;
+    }
+   
+    //CloudyFrameReaderThread::Shutdown();
 	delete[]PixelBuffer;
+}
+
+void CloudyStreamImpl::WriteFrameToPipe(int FrameSize, uint32 *PixelBuffer, int i)
+{
+    FColor Pixel;
+    for (int j = 0; j < FrameSize; ++j) {
+        Pixel = FrameBufferList[PlayerFrameMapping[i]][j];
+        PixelBuffer[j] = Pixel.DWColor();
+    }
+
+    fwrite(PixelBuffer, ColIncInt * PIXEL_SIZE, RowIncInt, VideoPipeList[i]);
 }
 
 
@@ -163,6 +261,9 @@ void CloudyStreamImpl::Split4Player() {
 
     for (int i = 0; i < NumberOfPlayers; i++)
     {
+        // i number of queues
+        // Each iteration, push ReadingViewport into all available queues
+        // Each thread should poll the queue to check if there is any Viewport to read from, then try to read and stream
         ReadingViewport->ReadPixels(FrameBufferList[i], flags, ScreenList[i]);
     }
     
@@ -186,6 +287,11 @@ void CloudyStreamImpl::StopPlayerStream(int32 ControllerId)
 	PlayerFrameMapping.Remove(ControllerId);
 	VideoPipeList.RemoveAt(PipeIndex);
 	NumberOfPlayers--;
+}
+
+void CloudyStreamImpl::AddPipeToList(FILE* TheFile)
+{
+    VideoPipeList.Add(TheFile);
 }
 
 

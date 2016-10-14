@@ -22,6 +22,12 @@ public:
 	*/
 	void SetUpVideoCapture();
 
+    /**
+    * One-time set up for the thread pool. To be used for multithreading when 
+    * reading and writing frames
+    */
+    void SetUpThreadPool();
+
 	/**
 	* Sets up variables required per-player for streaming, including the 
 	* player's stream and mapping from player's ControllerId to Frame index.
@@ -90,10 +96,12 @@ public:
 	// Timer for capturing frames
 	bool CaptureFrame(float DeltaTime);
 
+    // Multithreaded function
+    void WriteFrameToPipe(int FrameSize, uint32 *PixelBuffer, int i);
+
 
 	/** Class variables **/
 	int NumberOfPlayers;
-	TArray<FILE*> VideoPipeList;
 	TArray<TArray<FColor> > FrameBufferList;
 	bool isEngineRunning;
 	int sizeX, sizeY;
@@ -104,4 +112,7 @@ public:
 	FIntRect Screen1, Screen2, Screen3, Screen4;
 	FReadSurfaceDataFlags flags; // needed to read buffer from engine
 
+    FQueuedThreadPool* ThreadPool;
+
+    static void AddPipeToList(FILE* TheFile);
 };
