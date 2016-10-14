@@ -177,66 +177,66 @@ void CloudyStreamImpl::StreamFrameToClient() {
        //     (MyTask = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
             // Use the thread pool you made
         //}
-        if (i == 0)
-        {
-            (MyTask = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
-        }
-        if (i == 1)
-        {
-            (MyTask1 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
-        }
-        if (i == 2)
-        {
-            (MyTask2 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
-        }
-        if (i == 3)
-        {
-            (MyTask3 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
-        }
-        if (i == 4)
-        {
-            (MyTask4 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
-        }
-        if (i == 5)
-        {
-            (MyTask5 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
-        }
+        //if (i == 0)
+        //{
+        //    (MyTask = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        //}
+        //if (i == 1)
+        //{
+        //    (MyTask1 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        //}
+        //if (i == 2)
+        //{
+        //    (MyTask2 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        //}
+        //if (i == 3)
+        //{
+        //    (MyTask3 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        //}
+        //if (i == 4)
+        //{
+        //    (MyTask4 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        //}
+        //if (i == 5)
+        //{
+        //    (MyTask5 = new FAsyncTask<CloudyWriteFrameTask>(FrameSize, PixelBuffer, i, FrameBufferList, PlayerFrameMapping, ColIncInt, (int)PIXEL_SIZE, RowIncInt, VideoPipeList))->StartBackgroundTask();
+        //}
         //else
         //{
-            //WriteFrameToPipe(FrameSize, PixelBuffer, i);
+              WriteFrameToPipe(FrameSize, PixelBuffer, i);
         //}
         
 	}
-    if (MyTask != NULL)
-    {
-        MyTask->EnsureCompletion(); // This line crashes when the player closes the thin client.
-        delete MyTask;
-    }
-    if (MyTask1 != NULL)
-    {
-        MyTask1->EnsureCompletion();
-        delete MyTask1;
-    }
-    if (MyTask2 != NULL)
-    {
-        MyTask2->EnsureCompletion();
-        delete MyTask2;
-    }
-    if (MyTask3 != NULL)
-    {
-        MyTask3->EnsureCompletion();
-        delete MyTask3;
-    }
-    if (MyTask4 != NULL)
-    {
-        MyTask4->EnsureCompletion();
-        delete MyTask4;
-    }
-    if (MyTask5 != NULL)
-    {
-        MyTask5->EnsureCompletion();
-        delete MyTask5;
-    }
+    //if (MyTask != NULL)
+    //{
+    //    MyTask->EnsureCompletion(); // This line crashes when the player closes the thin client.
+    //    delete MyTask;
+    //}
+    //if (MyTask1 != NULL)
+    //{
+    //    MyTask1->EnsureCompletion();
+    //    delete MyTask1;
+    //}
+    //if (MyTask2 != NULL)
+    //{
+    //    MyTask2->EnsureCompletion();
+    //    delete MyTask2;
+    //}
+    //if (MyTask3 != NULL)
+    //{
+    //    MyTask3->EnsureCompletion();
+    //    delete MyTask3;
+    //}
+    //if (MyTask4 != NULL)
+    //{
+    //    MyTask4->EnsureCompletion();
+    //    delete MyTask4;
+    //}
+    //if (MyTask5 != NULL)
+    //{
+    //    MyTask5->EnsureCompletion();
+    //    delete MyTask5;
+    //}
    
     //CloudyFrameReaderThread::Shutdown();
 	delete[]PixelBuffer;
