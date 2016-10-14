@@ -1,6 +1,8 @@
 #pragma once
 
-DECLARE_LOG_CATEGORY_EXTERN(ModuleLog, Log, All)
+#include "Engine.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(RemoteControllerLog, Log, All)
 
 
 class RemoteControllerModule : public IModuleInterface
@@ -10,10 +12,14 @@ public:
 	void ShutdownModule();
 
 protected:
-	void RestartServices();
-	void InitializeRemoteServer();
+	void InitializeRemoteServer(const FString& SocketName, const FString& IPAddress, const int32 Port);
 
 private:
-	FSocket* ServerSocket;
-	TSharedPtr<RemoteControllerServer> RemoteServer;
+	FSocket* ServerListenSocket;
+    FUdpSocketReceiver* UDPInputReceiver;
+
+    void ProcessKeyboardInput(const FArrayReaderPtr& Data);
+    void ProcessMouseInput(const FArrayReaderPtr& Data);
+    void HandleInputReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
+    
 };
