@@ -88,6 +88,7 @@ bool CCloudyPlayerManagerModule::RemovePlayer(int32 ControllerId, int32 GameSess
 
 		// destroy the quitting player's pawn
 		APlayerController* Controller = ExistingPlayer->PlayerController;
+        Controller->FlushPressedKeys(); // Resetting them will prevent them from "sticking"
 		Controller->GetPawn()->Destroy();
 
 		// delete appropriate game session (delete from CloudyWeb)

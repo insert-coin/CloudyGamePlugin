@@ -17,7 +17,7 @@ int TColIncInt;
 int TPixelSize;
 int TRowIncInt;
 TArray<FILE*> TVideoPipeList;
-int j;
+int Tj;
 
 CloudyFrameReaderThread::CloudyFrameReaderThread(int counter, int FrameSize, uint32 *PixelBuffer, int i, TArray<TArray<FColor> > FrameBufferList, TArray<int> PlayerFrameMapping, int ColIncInt, int PixelSize, int RowIncInt, TArray<FILE*> VideoPipeList)
 {
@@ -45,7 +45,7 @@ CloudyFrameReaderThread::~CloudyFrameReaderThread()
 bool CloudyFrameReaderThread::Init()
 {
     //Init the Data 
-    j = 0;
+    Tj = 0;
 	
     //UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread init"));
 	return true;
@@ -60,9 +60,9 @@ uint32 CloudyFrameReaderThread::Run()
     //UE_LOG(CloudyFrameReaderThreadLog, Warning, TEXT("Thread running"));
 
     FColor Pixel;
-    for (j = 0; j < TFrameSize; ++j) {
-        Pixel = TFrameBufferList[TPlayerFrameMapping[Ti]][j]; 
-        TPixelBuffer[j] = Pixel.DWColor();
+    for (Tj = 0; Tj < TFrameSize; ++Tj) {
+        Pixel = TFrameBufferList[TPlayerFrameMapping[Ti]][Tj]; 
+        TPixelBuffer[Tj] = Pixel.DWColor();
 
         //prevent thread from using too many resources
         //FPlatformProcess::Sleep(0.01); // Streaming not working with this
@@ -119,5 +119,5 @@ bool CloudyFrameReaderThread::IsThreadFinished()
 
 bool CloudyFrameReaderThread::IsFinished()
 {
-    return j >= TFrameSize;
+    return Tj >= TFrameSize;
 }

@@ -78,7 +78,10 @@ void RemoteControllerModule::ProcessKeyboardInput(const FArrayReaderPtr& Data)
 		}
 		FInputKeyManager manager = FInputKeyManager::Get();
 		FKey key = manager.GetKeyFromCodes(Chunk.KeyCode, Chunk.CharCode);
-		controller->InputKey(key, ie, 1, false);
+        if (controller != nullptr)
+        {
+            controller->InputKey(key, ie, 1, false);
+        }
 	}
 }
 
@@ -97,13 +100,16 @@ void RemoteControllerModule::ProcessMouseInput(const FArrayReaderPtr& Data)
 	APlayerController* controller = UGameplayStatics::GetPlayerController(world, Chunk.ControllerID);
 
     // InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
-    if (Chunk.XAxis != NULL)
+    if (controller != nullptr)
     {
-        controller->InputAxis(EKeys::MouseX, Chunk.XAxis, world->GetDeltaSeconds(), 1, false);
-    }
-    if (Chunk.YAxis != NULL)
-    {
-        controller->InputAxis(EKeys::MouseY, -Chunk.YAxis, world->GetDeltaSeconds(), 1, false);
+        if (Chunk.XAxis != NULL)
+        {
+            controller->InputAxis(EKeys::MouseX, Chunk.XAxis, world->GetDeltaSeconds(), 1, false);
+        }
+        if (Chunk.YAxis != NULL)
+        {
+            controller->InputAxis(EKeys::MouseY, -Chunk.YAxis, world->GetDeltaSeconds(), 1, false);
+        }
     }
 }
 
