@@ -14,17 +14,17 @@
     [
         {
             "Name": "CloudyWebConnector",
-            "Type": "Developer",
+            "Type": "Runtime",
             "LoadingPhase": "PreDefault"
         },
         {
             "Name": "CloudyPlayerManager",
-            "Type": "Developer",
+            "Type": "Runtime",
             "LoadingPhase": "Default"
         },
         {
             "Name": "CloudyStream",
-            "Type": "Developer",
+            "Type": "Runtime",
             "LoadingPhase": "Default"
         },
         {
