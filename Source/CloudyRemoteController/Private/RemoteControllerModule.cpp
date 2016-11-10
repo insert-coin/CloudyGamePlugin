@@ -131,4 +131,4 @@ void RemoteControllerModule::HandleInputReceived(const FArrayReaderPtr& Data, co
     }
 }
 
-IMPLEMENT_MODULE(RemoteControllerModule, Module)
+IMPLEMENT_MODULE(RemoteControllerModule, CloudyRemoteController)
