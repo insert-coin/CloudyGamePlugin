@@ -22,24 +22,16 @@ public:
 	*
 	* @param Command The command to be executed (join/quit)
 	* @param ControllerId The Controller Id on which command should be executed
-	* @param StreamingPort The port to stream this player from (for join)
-	* @param StreamingIP The IP to stream this game from (for join)
-	* @param GameSessionId The id of this game session (for join)
 	*/
-	virtual bool ExecuteCommand(FString Command, 
-		int32 ControllerId, int32 StreamingPort, FString StreamingIP, int32 GameSessionId);
+	virtual bool ExecuteCommand(FString Command, int32 ControllerId);
 
 
 	/**
 	* Method to add player to the game by Controller ID.
 	*
 	* @param ControllerId The Controller ID of the player to be added
-	* @param StreamingPort The port to stream this player from
-	* @param StreamingIP The IP to stream this game from
-	* @param GameSessionId The ID of this game session
 	*/
-	bool AddPlayer(int32 ControllerId, int32 StreamingPort,
-		FString StreamingIP, int32 GameSessionId);
+	bool AddPlayer(int32 ControllerId);
 
 
 	/**
@@ -47,9 +39,8 @@ public:
 	* request to CloudyWeb server
 	*
 	* @param ControllerId The Controller ID of the player to be deleted
-	* @param GameSessionId The game session to be removed
 	*/
-	bool RemovePlayer(int32 ControllerId, int32 GameSessionId);
+	bool RemovePlayer(int32 ControllerId);
 
 
 	/**
@@ -75,7 +66,4 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded("CloudyPlayerManager");
 	}
-
-	/** Class variables */
-	int GameSessionIdMapping[]; // maps controller ID to game session ID
 };

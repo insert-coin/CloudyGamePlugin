@@ -29,9 +29,7 @@ public class CloudyPlayerManager : ModuleRules
 			new string[]
 			{
 				"Core",
-                "Engine",
-                "Sockets",
-                "Networking"
+                "Engine"
 				
 				// ... add other public dependencies that you statically link with here ...
 			}
