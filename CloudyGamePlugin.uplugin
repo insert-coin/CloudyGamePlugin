@@ -15,7 +15,7 @@
         {
             "Name": "CloudyWebConnector",
             "Type": "Runtime",
-            "LoadingPhase": "PreDefault"
+            "LoadingPhase": "Default"
         },
         {
             "Name": "CloudyPlayerManager",

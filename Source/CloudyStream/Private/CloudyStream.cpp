@@ -2,22 +2,15 @@
 
 #include "CloudyStreamPrivatePCH.h"
 
-#include <stdio.h>
-#include <sstream>
-
-
 #define LOCTEXT_NAMESPACE "CloudyStream"
 
-#define PIXEL_SIZE 4
-#define FPS 30 // frames per second
+#define CONNECTION_THREAD_TIME 5 // in seconds
 
 // Layout of the split screen. Ensure that this is same as the values in GameViewportClient.cpp line 120~
-#define MAX_NUM_PLAYERS 6
-#define NUM_ROWS 2.0
-#define NUM_COLS 3.0
+#define MAX_NUM_PLAYERS 12
+#define NUM_ROWS 3.0
+#define NUM_COLS 4.0
 
-
-TArray<FILE*> VideoPipeList;
 
 DEFINE_LOG_CATEGORY(CloudyStreamLog)
 
@@ -26,7 +19,7 @@ void CloudyStreamImpl::StartupModule()
     ensure(MAX_NUM_PLAYERS == NUM_ROWS * NUM_COLS);
 
 	// timer to capture frames
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyStreamImpl::CaptureFrame), 1.0);
+	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &CloudyStreamImpl::CaptureFrame), CONNECTION_THREAD_TIME);
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming module started"));
 
 }
@@ -38,30 +31,6 @@ void CloudyStreamImpl::ShutdownModule()
 	// we call this function before unloading the module.
 
 }
-
-
-// call this for each player join
-void CloudyStreamImpl::SetUpPlayer(int ControllerId, int StreamingPort, FString StreamingIP) {
-
-	// encode and write players' frames to http stream
-	std::stringstream *StringStream = new std::stringstream();
-
-	std::string StreamingIPString(TCHAR_TO_UTF8(*StreamingIP)); // convert to std::string
-
-    UE_LOG(CloudyStreamLog, Warning, TEXT("Streaming IP: %s, Streaming port: %d"), *StreamingIP, StreamingPort);
-
-    //*StringStream << "ffmpeg -y " << " -f rawvideo -pix_fmt bgra -s " << ColIncInt << "x" << RowIncInt << " -r " << FPS << " -loglevel quiet -i - -listen 1 -c:v libx264 -preset ultrafast -f avi -an -tune zerolatency http://" << StreamingIPString << ":" << StreamingPort;
-    //
-    //VideoPipeList.Add(_popen(StringStream->str().c_str(), "wb"));
-
-	// add frame buffer for new player
-	TArray<FColor> TempFrameBuffer;
-	FrameBufferList.Add(TempFrameBuffer);
-
-	PlayerFrameMapping.Add(ControllerId);
-	NumberOfPlayers++;
-}
-
 
 void CloudyStreamImpl::SetUpVideoCapture() {
 
@@ -86,9 +55,7 @@ void CloudyStreamImpl::SetUpVideoCapture() {
     {
         for (float k = 0.0f; k < sizeX; k += ColIncrement)
         {
-            // FIntRect(TopLeftX, TopLeftY, BottomRightX, BottomRightY)
             ScreenList.Add(FIntRect(k, i, k + ColIncInt, i + RowIncInt));
-            // UE_LOG(CloudyStreamLog, Warning, TEXT("Iteration: k: %f i: %f"), k, i);
         }
     }
 
@@ -114,43 +81,25 @@ bool CloudyStreamImpl::CaptureFrame(float DeltaTime) {
 
 	// engine has been stopped
 	else if (isEngineRunning && !(GEngine->GameViewport != nullptr && GIsRunning && IsInGameThread())) {
-		
 		isEngineRunning = false;
-
-		for (int i = 0; i < NumberOfPlayers; i++) {
-			// flush and close video pipes
-			fflush(VideoPipeList[i]);
-			fclose(VideoPipeList[i]);
-		}
 	}
 
 	return true;
 }
 
 
-void CloudyStreamImpl::StartPlayerStream(int32 ControllerId, int32 StreamingPort, FString StreamingIP)
+void CloudyStreamImpl::StartPlayerStream(int32 ControllerId)
 {
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Player %d stream started"), ControllerId);
-	SetUpPlayer(ControllerId, StreamingPort, StreamingIP);	
+    NumberOfPlayers++;
 }
 
 
 void CloudyStreamImpl::StopPlayerStream(int32 ControllerId)
 {
 	UE_LOG(CloudyStreamLog, Warning, TEXT("Player %d stream stopped"), ControllerId);
-	int PipeIndex = PlayerFrameMapping.Find(ControllerId);
-	fflush(VideoPipeList[PipeIndex]);
-	fclose(VideoPipeList[PipeIndex]);
-	PlayerFrameMapping.Remove(ControllerId);
-	VideoPipeList.RemoveAt(PipeIndex);
 	NumberOfPlayers--;
 }
-
-void CloudyStreamImpl::AddPipeToList(FILE* TheFile)
-{
-    VideoPipeList.Add(TheFile);
-}
-
 
 #undef LOCTEXT_NAMESPACE
 

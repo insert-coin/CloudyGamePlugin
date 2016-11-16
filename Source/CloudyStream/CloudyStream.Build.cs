@@ -29,10 +29,8 @@ public class CloudyStream : ModuleRules
             new string[]
 			{
 				"Core",
-                "Engine",
-                "Json",
-                "Http"
-				
+                "Engine"
+                				
 				// ... add other public dependencies that you statically link with here ...
 			}
             );
